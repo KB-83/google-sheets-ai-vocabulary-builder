@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f0f2f5;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        color: #333;
+      }
+      .quiz-container {
+        background-color: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        padding: 30px;
+        width: 90%;
+        max-width: 450px;
+        text-align: center;
+      }
+      .hidden { display: none; }
+      
+      /* Setup Screen */
+      #setup-screen h2 { color: #3f51b5; }
+      #num-questions-input {
+        width: 80px;
+        padding: 10px;
+        font-size: 1em;
+        text-align: center;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        margin: 10px 0 20px;
+      }
+      #start-quiz-btn {
+        background-color: #2e7d32;
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 1em;
+        transition: background-color 0.2s;
+      }
+      #start-quiz-btn:hover { background-color: #1b5e20; }
+      #start-quiz-btn:disabled { background-color: #9e9e9e; cursor: not-allowed; }
+
+      /* Quiz Screen */
+      #quiz-screen .progress {
+        font-size: 0.9em;
+        color: #5f6368;
+        margin-bottom: 15px;
+      }
+      #quiz-screen .question {
+        font-size: 1.1em;
+        font-style: italic;
+        margin-bottom: 25px;
+        min-height: 60px;
+      }
+      .options-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+      }
+      .option-btn {
+        padding: 15px;
+        font-size: 1em;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        background-color: #f7f9fc;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .option-btn:hover {
+        background-color: #e3f2fd;
+        border-color: #1976d2;
+      }
+      .option-btn.correct {
+        background-color: #e8f5e9;
+        border-color: #2e7d32;
+        color: #2e7d32;
+        font-weight: bold;
+      }
+      .option-btn.incorrect {
+        background-color: #ffcdd2;
+        border-color: #d32f2f;
+        color: #d32f2f;
+      }
+      .option-btn:disabled {
+        cursor: not-allowed;
+      }
+
+      /* Results Screen */
+      #results-screen h2 { color: #2e7d32; }
+      #results-screen p { font-size: 1.2em; }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div class="quiz-container">
+      <!-- Setup Screen -->
+      <div id="setup-screen">
+        <h2>Multiple-Choice Quiz</h2>
+        <p>How many questions would you like?</p>
+        <input type="number" id="num-questions-input" value="10" min="1">
+        <br>
+        <button id="start-quiz-btn">Start Quiz</button>
+      </div>
+
+      <!-- Quiz Screen -->
+      <div id="quiz-screen" class="hidden">
+        <p class="progress"><span id="current-q-num">1</span> of <span id="total-q-num">10</span></p>
+        <p class="question" id="question-text">This is where the definition of the word will appear.</p>
+        <div class="options-grid" id="options-grid">
+          <!-- Option buttons will be generated here -->
+        </div>
+      </div>
+
+      <!-- Results Screen -->
+      <div id="results-screen" class="hidden">
+        <h2>Quiz Complete!</h2>
+        <p>You scored <strong id="score"></strong> out of <strong id="total-score"></strong>.</p>
+        <p id="results-message" style="font-size: 1em;"></p>
+      </div>
+    </div>
+
+    <script>
+      let questions = [];
+      let currentQuestionIndex = 0;
+      let score = 0;
+      let incorrectRows = [];
+      let allQuizRows = [];
+
+      const setupScreen = document.getElementById('setup-screen');
+      const quizScreen = document.getElementById('quiz-screen');
+      const resultsScreen = document.getElementById('results-screen');
+      const startBtn = document.getElementById('start-quiz-btn');
+      const numInput = document.getElementById('num-questions-input');
+
+      startBtn.addEventListener('click', () => {
+        const numQuestions = parseInt(numInput.value, 10);
+        if (numQuestions > 0) {
+          startBtn.disabled = true;
+          startBtn.textContent = 'Loading...';
+          google.script.run
+            .withSuccessHandler(startQuiz)
+            .withFailureHandler(showError)
+            .getQuizWords(numQuestions);
+        }
+      });
+
+      function startQuiz(quizQuestions) {
+        if (!quizQuestions || quizQuestions.length === 0) {
+          showError({ message: "Not enough unique words to start a quiz." });
+          return;
+        }
+        questions = quizQuestions;
+        allQuizRows = questions.map(q => q.row);
+        setupScreen.classList.add('hidden');
+        quizScreen.classList.remove('hidden');
+        displayQuestion();
+      }
+
+      function displayQuestion() {
+        if (currentQuestionIndex < questions.length) {
+          const q = questions[currentQuestionIndex];
+          document.getElementById('question-text').textContent = q.question;
+          document.getElementById('current-q-num').textContent = currentQuestionIndex + 1;
+          document.getElementById('total-q-num').textContent = questions.length;
+          
+          const optionsGrid = document.getElementById('options-grid');
+          optionsGrid.innerHTML = '';
+          q.options.forEach(optionText => {
+            const button = document.createElement('button');
+            button.className = 'option-btn';
+            button.textContent = optionText;
+            button.onclick = () => selectAnswer(button, optionText, q.answer, q.row);
+            optionsGrid.appendChild(button);
+          });
+        } else {
+          showResults();
+        }
+      }
+
+      function selectAnswer(button, selectedAnswer, correctAnswer, row) {
+        const buttons = document.querySelectorAll('.option-btn');
+        buttons.forEach(btn => btn.disabled = true); // Disable all buttons
+
+        if (selectedAnswer === correctAnswer) {
+          button.classList.add('correct');
+          score++;
+        } else {
+          button.classList.add('incorrect');
+          incorrectRows.push(row);
+          // Highlight the correct answer
+          buttons.forEach(btn => {
+            if (btn.textContent === correctAnswer) {
+              btn.classList.add('correct');
+            }
+          });
+        }
+
+        setTimeout(() => {
+          currentQuestionIndex++;
+          displayQuestion();
+        }, 1500); // Wait 1.5 seconds before next question
+      }
+
+      function showResults() {
+        quizScreen.classList.add('hidden');
+        resultsScreen.classList.remove('hidden');
+        document.getElementById('score').textContent = score;
+        document.getElementById('total-score').textContent = questions.length;
+        
+        if (incorrectRows.length > 0) {
+          document.getElementById('results-message').textContent = 'Updating review dates for words you missed...';
+        } else {
+          document.getElementById('results-message').textContent = 'Great job! All answers were correct.';
+        }
+
+        // Send results to the backend
+        google.script.run
+          .withSuccessHandler(() => {
+            setTimeout(() => google.script.host.close(), 3000);
+          })
+          .withFailureHandler(showError)
+          .updateQuizResults({ incorrectRows, allQuizRows });
+      }
+
+      function showError(error) {
+        setupScreen.classList.add('hidden');
+        quizScreen.classList.add('hidden');
+        resultsScreen.classList.remove('hidden');
+        resultsScreen.innerHTML = `<h2>An Error Occurred</h2><p>${error.message}</p>`;
+      }
+    </script>
+  </body>
+</html>

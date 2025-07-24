@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      /* Basic CSS for the dialog look */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f0f2f5;
+        display: flex;
+        box-sizing: border-box;
+        padding: 10px;
+      }
+      
+      #review-container {
+        background-color: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center; /* Center content (like loading text) by default */
+      }
+      
+      /* --- State Management --- */
+      #loading, #error-message, #no-words-message, #word-card {
+        display: none;
+      }
+      #review-container.is-loading #loading,
+      #review-container.has-error #error-message,
+      #review-container.is-empty #no-words-message,
+      #review-container.is-reviewing #word-card {
+        display: flex;
+      }
+      
+      #word-card {
+        width: 100%;
+        height: 100%;
+        flex-direction: column;
+        align-items: center;
+      }
+      
+      /* --- Styling for the initial centered view --- */
+      #word-card.is-initial {
+        justify-content: center;
+      }
+      #word-card.is-initial #word-header {
+        flex-direction: column;
+        border-bottom: none;
+        padding-bottom: 0;
+        margin-bottom: 0;
+      }
+      #word-card.is-initial #pronunciation-group {
+        text-align: center;
+        margin-top: 10px;
+      }
+      #word-card.is-initial #pronunciation-group span {
+        justify-content: center;
+      }
+      #word-card.is-initial #show-answer-group {
+        border-top: none;
+        padding-top: 0;
+        margin-top: 20px;
+      }
+      #word-card.is-initial #answer-display,
+      #word-card.is-initial #srs-buttons {
+        display: none;
+      }
+
+      /* --- Styling for the detailed review view --- */
+      #word-card:not(.is-initial) #show-answer-group {
+        display: none;
+      }
+
+      #word-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        border-bottom: 1px solid #e0e0e0;
+        padding-bottom: 15px;
+        margin-bottom: 15px;
+        flex-shrink: 0;
+      }
+      
+      #word-display {
+        font-size: 2.2em;
+        font-weight: 600;
+        color: #3f51b5;
+        word-break: break-word;
+        margin: 0;
+      }
+      
+      #pronunciation-group {
+        text-align: right;
+        font-size: 0.9em;
+        color: #5f6368;
+      }
+      
+      #pronunciation-group span {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+      }
+      
+      #answer-display {
+        font-size: 0.85em;
+        color: #333;
+        line-height: 1.6;
+        text-align: left;
+        flex-grow: 1;
+        overflow-y: auto;
+        width: 100%;
+        padding-right: 15px;
+        box-sizing: border-box;
+      }
+      
+      .button-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: center;
+        align-items: center; /* Align items for manual input */
+        margin-top: 15px; 
+        width: 100%;
+        flex-shrink: 0;
+        padding-top: 15px;
+      }
+
+      #srs-buttons {
+         border-top: 1px solid #e0e0e0;
+      }
+      
+      button {
+        padding: 10px 18px;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.9em;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        font-weight: 500;
+        min-width: 90px;
+      }
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+      }
+      #show-answer-btn, #play-scramble-btn {
+        background-color: #2e7d32;
+        color: white;
+      }
+      #show-answer-btn:hover, #play-scramble-btn:hover {
+        background-color: #1b5e20;
+      }
+      .srs-btn {
+        color: white;
+      }
+      #again-btn { background-color: #d32f2f; }
+      #again-btn:hover { background-color: #b71c1c; }
+      #hard-btn { background-color: #f57c00; }
+      #hard-btn:hover { background-color: #e65100; }
+      #good-btn { background-color: #1976d2; }
+      #good-btn:hover { background-color: #0d47a1; }
+      #easy-btn { background-color: #7b1fa2; }
+      #easy-btn:hover { background-color: #4a148c; }
+
+      #manual-days-input {
+        width: 50px;
+        padding: 9px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        text-align: center;
+        font-size: 0.9em;
+        margin-left: 15px;
+      }
+      #manual-set-btn {
+        min-width: 60px;
+        background-color: #546e7a;
+        color: white;
+      }
+       #manual-set-btn:hover {
+        background-color: #37474f;
+      }
+
+      .play-button {
+        background: none;
+        border: none;
+        width: 20px;
+        height: 20px;
+        padding: 0;
+        margin: 0 0 0 8px;
+        cursor: pointer;
+        transition: transform 0.2s;
+        min-width: auto;
+        box-shadow: none;
+      }
+      .play-button:hover {
+        transform: scale(1.2);
+      }
+      .play-button-uk { color: #1976d2; }
+      .play-button-us { color: #d32f2f; }
+      
+      .meaning-block {
+        background-color: #f7f9fc;
+        border-left: 3px solid #1976d2;
+        padding: 10px 12px;
+        margin-bottom: 12px;
+        border-radius: 0 8px 8px 0;
+      }
+      .meaning-block p {
+        margin: 0;
+        padding: 0;
+        line-height: 1.4;
+      }
+      .meaning-block .definition {
+        font-weight: 500;
+        color: #202124;
+      }
+      .meaning-block .example {
+        font-style: italic;
+        color: #5f6368;
+        margin-top: 4px;
+      }
+      .meaning-block .persian {
+        direction: rtl;
+        text-align: right;
+        font-family: 'Tahoma', 'Arial', sans-serif;
+        color: #00695c;
+        font-weight: 500;
+        margin-top: 6px;
+        font-size: 1.1em;
+      }
+      hr {
+        border: none;
+        border-top: 1px solid #e0e0e0;
+        margin: 15px 0;
+      }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div id="review-container" class="is-loading">
+      <div id="loading">Loading words...</div>
+      <div id="error-message"></div>
+      <div id="no-words-message">No words due for review today. Great job!</div>
+
+      <div id="word-card">
+        <div id="word-header">
+            <div id="word-display"></div>
+            <div id="pronunciation-group"></div>
+        </div>
+        
+        <div id="answer-display"></div>
+        
+        <div class="button-group" id="show-answer-group">
+          <button id="show-answer-btn">Show Answer</button>
+          <button id="play-scramble-btn">Play Scramble</button> <!-- **NEW** -->
+        </div>
+        <div id="srs-buttons" class="button-group">
+          <button id="again-btn" class="srs-btn">Again</button>
+          <button id="hard-btn" class="srs-btn">Hard</button>
+          <button id="good-btn" class="srs-btn">Good</button>
+          <button id="easy-btn" class="srs-btn">Easy</button>
+          <input type="number" id="manual-days-input" min="1" placeholder="Days">
+          <button id="manual-set-btn">Set</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let wordsToReview = [];
+      let currentWordIndex = 0;
+      const reviewContainer = document.getElementById('review-container');
+
+      function playAudio(url) {
+        const audio = new Audio(url);
+        audio.play().catch(e => console.error("Error playing audio:", e));
+      }
+
+      document.addEventListener('DOMContentLoaded', function() {
+        google.script.run
+          .withSuccessHandler(initializeReview)
+          .withFailureHandler(showError)
+          .getWordsDueForReview();
+
+        document.getElementById('pronunciation-group').addEventListener('click', function(event) {
+          const button = event.target.closest('.play-button');
+          if (button) {
+            const audioUrl = button.dataset.audioUrl;
+            if (audioUrl) playAudio(audioUrl);
+          }
+        });
+      });
+
+      function initializeReview(words) {
+        try {
+          wordsToReview = words;
+          if (wordsToReview.length > 0) {
+            reviewContainer.className = 'is-reviewing';
+            displayCurrentWord();
+          } else {
+            reviewContainer.className = 'is-empty';
+          }
+        } catch (e) {
+          showError(e);
+        }
+      }
+
+      function displayCurrentWord() {
+        try {
+          if (currentWordIndex < wordsToReview.length) {
+            const wordData = wordsToReview[currentWordIndex];
+            const wordCard = document.getElementById('word-card');
+            
+            wordCard.classList.add('is-initial');
+            document.getElementById('word-display').textContent = wordData.word;
+            
+            const answerDisplay = document.getElementById('answer-display');
+            answerDisplay.innerHTML = '';
+            
+            const pronunciationGroup = document.getElementById('pronunciation-group');
+            pronunciationGroup.innerHTML = '';
+
+            const appendStrongText = (parent, label, text) => {
+              if (text && text !== '—') {
+                const p = document.createElement('p');
+                p.innerHTML = `<strong>${label}:</strong> ${text}`;
+                parent.appendChild(p);
+              }
+            };
+            
+            const appendList = (parent, label, text) => {
+                 if (text && text.trim() && text !== '—') {
+                    const div = document.createElement('div');
+                    let html = `<strong>${label}:</strong><ul>`;
+                    text.split('\n').forEach(item => {
+                        if(item) html += `<li>${item.replace(/• /g, '')}</li>`;
+                    });
+                    html += '</ul>';
+                    div.innerHTML = html;
+                    parent.appendChild(div);
+                 }
+            };
+
+            // --- PRONUNCIATION BLOCK ---
+            if ((wordData.ukPronunciation && wordData.ukPronunciation !== '—') ||
+                (wordData.usPronunciation && wordData.usPronunciation !== '—')) {
+              
+              const encodedWord = encodeURIComponent(wordData.word.toLowerCase());
+              const speakerIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="display: block; width: 100%; height: 100%;"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"></path></svg>`;
+
+              if (wordData.ukPronunciation && wordData.ukPronunciation !== '—') {
+                const ukAudioUrl = `https://ssl.gstatic.com/dictionary/static/sounds/oxford/${encodedWord}--_gb_1.mp3`;
+                const ukSpan = document.createElement('span');
+                ukSpan.innerHTML = `<strong>UK:</strong> ${wordData.ukPronunciation}`;
+                const ukButton = document.createElement('button');
+                ukButton.className = 'play-button play-button-uk';
+                ukButton.innerHTML = speakerIconSvg;
+                ukButton.dataset.audioUrl = ukAudioUrl;
+                ukSpan.appendChild(ukButton);
+                pronunciationGroup.appendChild(ukSpan);
+              }
+
+              if (wordData.usPronunciation && wordData.usPronunciation !== '—') {
+                const usAudioUrl = `https://ssl.gstatic.com/dictionary/static/sounds/oxford/${encodedWord}--_us_1.mp3`;
+                const usSpan = document.createElement('span');
+                usSpan.innerHTML = `<strong>US:</strong> ${wordData.usPronunciation}`;
+                const usButton = document.createElement('button');
+                usButton.className = 'play-button play-button-us';
+                usButton.innerHTML = speakerIconSvg;
+                usButton.dataset.audioUrl = usAudioUrl;
+                usSpan.appendChild(usButton);
+                pronunciationGroup.appendChild(usSpan);
+              }
+            }
+
+            // --- MEANINGS AND EXAMPLES BLOCK ---
+            appendStrongText(answerDisplay, 'Part of Speech', wordData.partOfSpeech);
+            if (wordData.definitions && wordData.definitions.length > 0 && wordData.definitions[0] !== '• —') {
+                const meaningsTitle = document.createElement('strong');
+                meaningsTitle.textContent = 'Meanings & Examples:';
+                meaningsTitle.style.display = 'block';
+                meaningsTitle.style.marginBottom = '8px';
+                answerDisplay.appendChild(meaningsTitle);
+
+                wordData.definitions.forEach((def, index) => {
+                    if (!def) return;
+                    const block = document.createElement('div');
+                    block.className = 'meaning-block';
+                    
+                    const defP = document.createElement('p');
+                    defP.className = 'definition';
+                    defP.textContent = `${index + 1}. ${def.replace(/• /g, '')}`;
+                    block.appendChild(defP);
+                    
+                    const persianP = document.createElement('p');
+                    persianP.className = 'persian';
+                    persianP.textContent = (wordData.persianTranslations[index] || '').replace(/• /g, '');
+                    block.appendChild(persianP);
+
+                    const exP = document.createElement('p');
+                    exP.className = 'example';
+                    exP.textContent = (wordData.definitionExamples[index] || '').replace(/• /g, '');
+                    block.appendChild(exP);
+
+                    answerDisplay.appendChild(block);
+                });
+                answerDisplay.appendChild(document.createElement('hr'));
+            }
+
+            // --- OTHER INFO ---
+            appendList(answerDisplay, 'General Examples', (wordData.generalExamples || []).join('\n'));
+            appendList(answerDisplay, 'Synonyms', wordData.synonyms);
+            appendList(answerDisplay, 'Antonyms', wordData.antonyms);
+            appendList(answerDisplay, 'Notes', wordData.notes);
+            appendList(answerDisplay, 'Word Family', wordData.wordFamily);
+            
+          } else {
+            reviewContainer.className = 'is-empty';
+          }
+        } catch (e) {
+          showError(e);
+        }
+      }
+
+      document.getElementById('show-answer-btn').addEventListener('click', function() {
+        document.getElementById('word-card').classList.remove('is-initial');
+      });
+      
+      // **NEW**: Event listener for the scramble button
+      document.getElementById('play-scramble-btn').addEventListener('click', function() {
+        const wordData = wordsToReview[currentWordIndex];
+        const hint = (wordData.definitions[0] || '').replace(/• /g, '');
+        google.script.run.openScramblePuzzle(wordData.word, hint);
+      });
+
+      document.getElementById('again-btn').addEventListener('click', () => submitReview('Again'));
+      document.getElementById('hard-btn').addEventListener('click', () => submitReview('Hard'));
+      document.getElementById('good-btn').addEventListener('click', () => submitReview('Good'));
+      document.getElementById('easy-btn').addEventListener('click', () => submitReview('Easy'));
+      
+      document.getElementById('manual-set-btn').addEventListener('click', () => {
+        const input = document.getElementById('manual-days-input');
+        const days = parseInt(input.value, 10);
+        if (days && days > 0) {
+          submitReview(days);
+          input.value = '';
+        }
+      });
+
+      function submitReview(difficulty) {
+        const wordData = wordsToReview[currentWordIndex];
+        google.script.run
+            .withFailureHandler(showError)
+            .updateWordReview({
+                row: wordData.row,
+                difficulty: difficulty,
+                reviewCount: wordData.reviewCount
+            });
+
+        if (difficulty === 'Again') {
+            wordsToReview.push(wordData);
+        }
+
+        currentWordIndex++;
+        displayCurrentWord();
+      }
+
+      function showError(error) {
+        reviewContainer.className = 'has-error';
+        document.getElementById('error-message').textContent = 'Error: ' + (error.message || error);
+        console.error("Dialog error:", error);
+      }
+    </script>
+  </body>
+</html>

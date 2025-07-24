@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f0f2f5;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        color: #333;
+      }
+      .puzzle-container {
+        background-color: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        padding: 30px;
+        width: 90%;
+        max-width: 380px;
+        text-align: center;
+      }
+      h2 {
+        color: #3f51b5;
+        margin-top: 0;
+      }
+      .hint {
+        font-style: italic;
+        color: #5f6368;
+        margin-bottom: 25px;
+        font-size: 0.9em;
+      }
+      .letter-boxes {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap; /* **CHANGE**: Allow boxes to wrap */
+        gap: 10px;
+        margin-bottom: 25px;
+      }
+      .letter-box {
+        width: 40px;
+        height: 40px;
+        border: 2px solid #ccc;
+        border-radius: 8px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 1.5em;
+        font-weight: 600;
+        background-color: #f7f9fc;
+        text-transform: uppercase;
+      }
+      #answer-input {
+        width: calc(100% - 24px);
+        padding: 12px;
+        font-size: 1.2em;
+        text-align: center;
+        border: 2px solid #ccc;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+      }
+      #answer-input.correct {
+        border-color: #2e7d32;
+        color: #2e7d32;
+        background-color: #e8f5e9;
+      }
+      #answer-input.incorrect {
+        border-color: #d32f2f;
+        background-color: #ffcdd2;
+      }
+      #status-message {
+        margin-top: 20px;
+        font-weight: 600;
+        height: 24px;
+      }
+      #status-message.success {
+        color: #2e7d32;
+      }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div class="puzzle-container">
+      <h2>Unscramble the Word</h2>
+      <p class="hint"><strong>Hint:</strong> <span id="hint-text"></span></p>
+      <div class="letter-boxes" id="letter-boxes"></div>
+      <input type="text" id="answer-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      <p id="status-message"></p>
+    </div>
+
+    <script>
+      const correctWord = "<?= word ?>".toLowerCase();
+      const hint = "<?= hint ?>";
+      const answerInput = document.getElementById('answer-input');
+      const statusMessage = document.getElementById('status-message');
+
+      // Function to shuffle an array
+      function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+      }
+
+      // Initialize the puzzle
+      document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('hint-text').textContent = hint;
+        const letters = shuffle(correctWord.split(''));
+        const letterBoxes = document.getElementById('letter-boxes');
+        letters.forEach(letter => {
+          const box = document.createElement('div');
+          box.className = 'letter-box';
+          box.textContent = letter;
+          letterBoxes.appendChild(box);
+        });
+        answerInput.focus();
+      });
+
+      // Handle user input
+      answerInput.addEventListener('input', () => {
+        const typedValue = answerInput.value.toLowerCase();
+        const correctSlice = correctWord.slice(0, typedValue.length);
+
+        // Reset styles
+        answerInput.classList.remove('correct', 'incorrect');
+        statusMessage.textContent = '';
+        statusMessage.classList.remove('success');
+
+        if (typedValue === correctSlice) {
+          answerInput.classList.add('correct');
+          if (typedValue === correctWord) {
+            answerInput.disabled = true;
+            statusMessage.textContent = 'Correct! Well done!';
+            statusMessage.classList.add('success');
+            setTimeout(() => google.script.host.close(), 2000); // Close after 2 seconds
+          }
+        } else {
+          answerInput.classList.add('incorrect');
+        }
+      });
+    </script>
+  </body>
+</html>
