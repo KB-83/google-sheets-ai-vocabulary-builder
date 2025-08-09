@@ -14,10 +14,6 @@ function setApiKeys() {
   PropertiesService.getScriptProperties().setProperty('GEMINI_API_KEY', 'YOUR_GEMINI_API_KEY');
   Logger.log('Gemini API Key set successfully in script properties.');
 }
-function setApiKeys() {
-  PropertiesService.getScriptProperties().setProperty('GEMINI_API_KEY', 'YOUR_GEMINI_API_KEY');
-  Logger.log('Gemini API Key set successfully in script properties.');
-}
 
 // --- Formatting Constants ---
 const EVEN_ROW_COLOR = '#f3f3f3';
@@ -816,6 +812,11 @@ function populateHyperlinks() {
 }
 
 
+function setApiKeys() {
+  PropertiesService.getScriptProperties().setProperty('GEMINI_API_KEY', 'YOUR_GEMINI_API_KEY');
+  Logger.log('Gemini API Key set successfully in script properties.');
+}
+
 function showReviewDialog() {
   const html = HtmlService.createHtmlOutputFromFile('ReviewDialog.html')
       .setTitle('Vocabulary Review Session')
@@ -865,12 +866,111 @@ function addNewWord(word) {
 
 
 /**
+ * Shows the search dialog window.
+ */
+function showSearchDialog() {
+  const html = HtmlService.createHtmlOutputFromFile('SearchDialog.html')
+      .setTitle('Search Vocabulary')
+      .setWidth(500)
+      .setHeight(600);
+  SpreadsheetApp.getUi().showModelessDialog(html, html.getTitle());
+}
+
+/**
+ * Searches for words by prefix (case-insensitive).
+ * Called by the client-side JavaScript in SearchDialog.html.
+ * @param {string} prefix The search term.
+ * @returns {Array<Object>} A list of matching words with their row numbers.
+ */
+function searchWords(prefix) {
+  if (!prefix || prefix.trim().length === 0) {
+    return [];
+  }
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return [];
+  }
+  const wordListRange = sheet.getRange(2, 1, lastRow - 1, 1);
+  const wordValues = wordListRange.getValues();
+  const lowerCasePrefix = prefix.trim().toLowerCase();
+  
+  const matches = [];
+  wordValues.forEach((row, index) => {
+    const word = row[0].toString().trim();
+    if (word && word.toLowerCase().startsWith(lowerCasePrefix)) {
+      matches.push({
+        word: word,
+        row: index + 2 // Convert 0-based index to 1-based row number
+      });
+    }
+  });
+  return matches.slice(0, 15); // Return a max of 15 matches
+}
+
+/**
+ * Gets all details for a single word by its row number.
+ * Called by the client-side JavaScript in SearchDialog.html.
+ * @param {number} rowNumber The row number of the word.
+ * @returns {Object} An object containing all details for the word.
+ */
+function getWordDetails(rowNumber) {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+    if (!sheet) {
+      throw new Error(`Sheet with name "${SHEET_NAME}" not found.`);
+    }
+
+    const dataRange = sheet.getRange(rowNumber, 1, 1, 20);
+    const rowData = dataRange.getValues()[0];
+    const linkFormulas = sheet.getRange(rowNumber, 15, 1, 2).getFormulas()[0];
+
+    const word = rowData[0];
+    if (!word) {
+      return null;
+    }
+
+    const cambridgeFormula = linkFormulas[0];
+    const oxfordFormula = linkFormulas[1];
+        
+    const cambridgeUrl = cambridgeFormula.match(/HYPERLINK\("([^"]+)"/i) ? cambridgeFormula.match(/HYPERLINK\("([^"]+)"/i)[1] : '';
+    const oxfordUrl = oxfordFormula.match(/HYPERLINK\("([^"]+)"/i) ? oxfordFormula.match(/HYPERLINK\("([^"]+)"/i)[1] : '';
+
+    return {
+        word: word,
+        row: rowNumber,
+        persianTranslations: rowData[1] ? rowData[1].split('\n') : [],
+        definitions: rowData[2] ? rowData[2].split('\n') : [],
+        definitionExamples: rowData[3] ? rowData[3].split('\n') : [],
+        generalExamples: rowData[4] ? rowData[4].split('\n') : [],
+        partOfSpeech: rowData[5],
+        synonyms: rowData[6],
+        antonyms: rowData[7],
+        notes: rowData[8],
+        wordFamily: rowData[9],
+        ukPronunciation: rowData[12],
+        usPronunciation: rowData[13],
+        cambridgeUrl: cambridgeUrl,
+        oxfordUrl: oxfordUrl,
+        reviewCount: rowData[17] || 0,
+        totalReviews: rowData[19] || 0
+    };
+  } catch (e) {
+    Logger.log(`Error in getWordDetails for row ${rowNumber}: ${e.message}`);
+    return null;
+  }
+}
+
+
+
+/**
  * Adds new options to the custom menu.
  */
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('Review Vocabulary')
       .addItem('Start Review Session', 'showReviewDialog')
       .addItem('Start Multiple-Choice Quiz', 'openQuizDialog')
+      .addItem('Search Words', 'showSearchDialog') // <-- ADD THIS LINE
       .addSeparator()
       .addItem('Format Sheet', 'formatSheet')
       .addItem('Remove Duplicates', 'removeDuplicateWords')

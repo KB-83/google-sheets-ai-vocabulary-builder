@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <style>
+      /* --- Base Styles --- */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f0f2f5;
+        display: flex;
+        flex-direction: column; /* Changed to column */
+        box-sizing: border-box;
+        padding: 10px;
+      }
+
+      /* --- Main Container --- */
+      #search-dialog-container {
+        background-color: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        overflow: hidden;
+      }
+
+      /* --- Search Bar & Suggestions --- */
+      #search-bar-container {
+        width: 100%;
+        padding: 20px;
+        box-sizing: border-box;
+        position: relative;
+        flex-shrink: 0;
+        z-index: 100;
+      }
+      #search-input {
+        width: 100%;
+        padding: 12px;
+        box-sizing: border-box;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        font-size: 1em;
+      }
+      #suggestions {
+        border: 1px solid #ccc;
+        border-top: none;
+        max-height: 200px;
+        overflow-y: auto;
+        background-color: white;
+        position: absolute;
+        width: calc(100% - 40px); /* Adjust for padding */
+        box-sizing: border-box;
+        border-radius: 0 0 8px 8px;
+        display: none;
+      }
+      .suggestion-item {
+        padding: 10px;
+        cursor: pointer;
+      }
+      .suggestion-item:hover {
+        background-color: #f0f0f0;
+      }
+
+      /* --- Main Content Area --- */
+      #content-area {
+        width: 100%;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        color: #888;
+        padding: 0 20px 20px;
+        box-sizing: border-box;
+        overflow-y: auto;
+      }
+      
+      /* --- State Management --- */
+      #loading, #error-message, #initial-message, #word-card {
+        display: none;
+      }
+      #content-area.is-loading #loading,
+      #content-area.has-error #error-message,
+      #content-area.is-initial #initial-message,
+      #content-area.is-showing-word #word-card {
+        display: flex;
+      }
+
+      #word-card {
+        width: 100%;
+        height: 100%;
+        flex-direction: column;
+        align-items: center;
+        text-align: left;
+      }
+
+      /* --- Word Card Styling (copied from ReviewDialog) --- */
+      #word-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        border-bottom: 1px solid #e0e0e0;
+        padding-bottom: 15px;
+        margin-bottom: 15px;
+        flex-shrink: 0;
+      }
+      #word-display {
+        font-size: 2.2em;
+        font-weight: 600;
+        color: #3f51b5;
+        word-break: break-word;
+        margin: 0;
+      }
+      #pronunciation-group {
+        text-align: right;
+        font-size: 0.9em;
+        color: #5f6368;
+      }
+      #pronunciation-group span {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+      }
+      #answer-display {
+        font-size: 0.85em;
+        color: #333;
+        line-height: 1.6;
+        text-align: left;
+        flex-grow: 1;
+        overflow-y: auto; /* This makes only the details scrollable */
+        width: 100%;
+        padding-right: 15px;
+        box-sizing: border-box;
+      }
+      .play-button {
+        background: none; border: none; width: 20px; height: 20px;
+        padding: 0; margin: 0 0 0 8px; cursor: pointer;
+        transition: transform 0.2s; min-width: auto; box-shadow: none;
+      }
+      .play-button:hover { transform: scale(1.2); }
+      .play-button-uk { color: #1976d2; }
+      .play-button-us { color: #d32f2f; }
+      .meaning-block {
+        background-color: #f7f9fc; border-left: 3px solid #1976d2;
+        padding: 10px 12px; margin-bottom: 12px; border-radius: 0 8px 8px 0;
+      }
+      .meaning-block p { margin: 0; padding: 0; line-height: 1.4; }
+      .meaning-block .definition { font-weight: 500; color: #202124; }
+      .meaning-block .example { font-style: italic; color: #5f6368; margin-top: 4px; }
+      .meaning-block .persian {
+        direction: rtl; text-align: right; font-family: 'Tahoma', 'Arial', sans-serif;
+        color: #00695c; font-weight: 500; margin-top: 6px; font-size: 1.1em;
+      }
+      hr { border: none; border-top: 1px solid #e0e0e0; margin: 15px 0; }
+      .dictionary-links {
+        margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0; text-align: center;
+      }
+      .dictionary-links a {
+        display: inline-flex; align-items: center; text-decoration: none;
+        color: #5f6368; background-color: #f7f9fc; padding: 8px 12px;
+        border-radius: 20px; margin: 0 5px; font-size: 0.9em; transition: all 0.2s ease;
+      }
+      .dictionary-links a:hover { background-color: #e3f2fd; color: #1976d2; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+      .dictionary-links span { margin-left: 6px; }
+      .add-word-btn {
+        margin-left: 8px; padding: 2px 8px; font-size: 0.8em; cursor: pointer;
+        border-radius: 4px; border: 1px solid #90a4ae; background-color: #eceff1;
+        color: #37474f; font-weight: 500; min-width: auto; box-shadow: none;
+      }
+      .add-word-btn:hover { background-color: #cfd8dc; }
+      .add-word-btn:disabled {
+        cursor: not-allowed; background-color: #e8f5e9;
+        color: #2e7d32; border-color: #a5d6a7;
+      }
+      .toast {
+        position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%);
+        background-color: #333; color: white; padding: 12px 20px;
+        border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        transition: bottom 0.5s ease; z-index: 1000;
+      }
+      .toast.show { bottom: 20px; }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="search-dialog-container">
+        <div id="search-bar-container">
+            <input type="text" id="search-input" placeholder="Type to search for a word...">
+            <div id="suggestions"></div>
+        </div>
+
+        <div id="content-area" class="is-initial">
+            <div id="initial-message">Search for a word to see its details.</div>
+            <div id="loading">Loading details...</div>
+            <div id="error-message"></div>
+
+            <div id="word-card">
+                <div id="word-header">
+                    <div id="word-display"></div>
+                    <div id="pronunciation-group"></div>
+                </div>
+                <div id="answer-display"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+      const searchInput = document.getElementById('search-input');
+      const suggestionsPanel = document.getElementById('suggestions');
+      const contentArea = document.getElementById('content-area');
+      let searchTimeout;
+
+      // --- Event Listeners ---
+      document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('answer-display').addEventListener('click', handleAddWordClick);
+        document.getElementById('pronunciation-group').addEventListener('click', handlePronunciationClick);
+        document.addEventListener('click', handleGlobalClick);
+        searchInput.addEventListener('input', handleSearchInput);
+      });
+
+      // --- Event Handlers ---
+      function handleSearchInput() {
+        clearTimeout(searchTimeout);
+        const query = searchInput.value;
+        if (query.trim().length === 0) {
+          suggestionsPanel.innerHTML = '';
+          suggestionsPanel.style.display = 'none';
+          return;
+        }
+        searchTimeout = setTimeout(() => {
+          google.script.run
+            .withSuccessHandler(showSuggestions)
+            .withFailureHandler(showError)
+            .searchWords(query);
+        }, 300);
+      }
+
+      function handleAddWordClick(event) {
+        if (event.target.classList.contains('add-word-btn')) {
+            const button = event.target;
+            const wordToAdd = button.dataset.word;
+            button.disabled = true;
+            button.textContent = 'Adding...';
+            
+            google.script.run
+                .withSuccessHandler(message => {
+                    showToast(message);
+                    button.textContent = '✓ Added';
+                })
+                .withFailureHandler(showError)
+                .addNewWord(wordToAdd);
+        }
+      }
+
+      function handlePronunciationClick(event) {
+        const button = event.target.closest('.play-button');
+        if (button) {
+            const audioUrl = button.dataset.audioUrl;
+            if (audioUrl) new Audio(audioUrl).play().catch(e => console.error("Audio error:", e));
+        }
+      }
+      
+      function handleGlobalClick(event) {
+        if (!searchInput.contains(event.target)) {
+          suggestionsPanel.style.display = 'none';
+        }
+      }
+
+      // --- UI Update Functions ---
+      function showSuggestions(words) {
+        suggestionsPanel.innerHTML = '';
+        if (words && words.length > 0) {
+          suggestionsPanel.style.display = 'block';
+          words.forEach(wordObj => {
+            const item = document.createElement('div');
+            item.className = 'suggestion-item';
+            item.textContent = wordObj.word;
+            item.onclick = () => selectWord(wordObj.row);
+            suggestionsPanel.appendChild(item);
+          });
+        } else {
+          suggestionsPanel.style.display = 'none';
+        }
+      }
+
+      function selectWord(rowNumber) {
+        searchInput.value = '';
+        suggestionsPanel.style.display = 'none';
+        contentArea.className = 'is-loading';
+
+        google.script.run
+          .withSuccessHandler(displayWordDetails)
+          .withFailureHandler(showError)
+          .getWordDetails(rowNumber);
+      }
+
+      function displayWordDetails(wordData) {
+        if (!wordData) {
+          showError({ message: 'Could not retrieve word details.' });
+          return;
+        }
+        
+        contentArea.className = 'is-showing-word';
+        
+        document.getElementById('word-display').textContent = wordData.word;
+        
+        const answerDisplay = document.getElementById('answer-display');
+        answerDisplay.innerHTML = '';
+        
+        const pronunciationGroup = document.getElementById('pronunciation-group');
+        pronunciationGroup.innerHTML = '';
+
+        // --- Build Pronunciation ---
+        if ((wordData.ukPronunciation && wordData.ukPronunciation !== '—') || (wordData.usPronunciation && wordData.usPronunciation !== '—')) {
+            const encodedWord = encodeURIComponent(wordData.word.toLowerCase());
+            const speakerIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="display: block; width: 100%; height: 100%;"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"></path></svg>`;
+            
+            if (wordData.ukPronunciation && wordData.ukPronunciation !== '—') {
+                const ukSpan = document.createElement('span');
+                ukSpan.innerHTML = `<strong>UK:</strong> ${wordData.ukPronunciation}`;
+                const ukButton = document.createElement('button');
+                ukButton.className = 'play-button play-button-uk';
+                ukButton.innerHTML = speakerIconSvg;
+                ukButton.dataset.audioUrl = `https://ssl.gstatic.com/dictionary/static/sounds/oxford/${encodedWord}--_gb_1.mp3`;
+                ukSpan.appendChild(ukButton);
+                pronunciationGroup.appendChild(ukSpan);
+            }
+            if (wordData.usPronunciation && wordData.usPronunciation !== '—') {
+                const usSpan = document.createElement('span');
+                usSpan.innerHTML = `<strong>US:</strong> ${wordData.usPronunciation}`;
+                const usButton = document.createElement('button');
+                usButton.className = 'play-button play-button-us';
+                usButton.innerHTML = speakerIconSvg;
+                usButton.dataset.audioUrl = `https://ssl.gstatic.com/dictionary/static/sounds/oxford/${encodedWord}--_us_1.mp3`;
+                usSpan.appendChild(usButton);
+                pronunciationGroup.appendChild(usSpan);
+            }
+        }
+        
+        // --- Build Details ---
+        appendStrongText(answerDisplay, 'Part of Speech', wordData.partOfSpeech);
+        if (wordData.definitions && wordData.definitions.length > 0 && wordData.definitions[0] !== '• —') {
+            const meaningsTitle = document.createElement('strong');
+            meaningsTitle.textContent = 'Meanings & Examples:';
+            meaningsTitle.style.cssText = 'display: block; margin-bottom: 8px;';
+            answerDisplay.appendChild(meaningsTitle);
+
+            wordData.definitions.forEach((def, index) => {
+                if (!def) return;
+                const block = document.createElement('div');
+                block.className = 'meaning-block';
+                block.innerHTML = `
+                    <p class="definition">${index + 1}. ${def.replace(/• /g, '')}</p>
+                    <p class="persian">${(wordData.persianTranslations[index] || '').replace(/• /g, '')}</p>
+                    <p class="example">${(wordData.definitionExamples[index] || '').replace(/• /g, '')}</p>
+                `;
+                answerDisplay.appendChild(block);
+            });
+            answerDisplay.appendChild(document.createElement('hr'));
+        }
+
+        appendList(answerDisplay, 'General Examples', (wordData.generalExamples || []).join('\n'), false);
+        appendList(answerDisplay, 'Synonyms', wordData.synonyms, true);
+        appendList(answerDisplay, 'Antonyms', wordData.antonyms, true);
+        appendList(answerDisplay, 'Notes', wordData.notes, false);
+        appendList(answerDisplay, 'Word Family', wordData.wordFamily, true);
+
+        const linksContainer = document.createElement('div');
+        linksContainer.className = 'dictionary-links';
+        if (wordData.cambridgeUrl) linksContainer.innerHTML += `<a href="${wordData.cambridgeUrl}" target="_blank">📖<span>Cambridge</span></a>`;
+        if (wordData.oxfordUrl) linksContainer.innerHTML += `<a href="${wordData.oxfordUrl}" target="_blank">📚<span>Oxford</span></a>`;
+        if (linksContainer.hasChildNodes()) answerDisplay.appendChild(linksContainer);
+
+        answerDisplay.scrollTop = 0;
+      }
+
+      // --- Helper & Utility Functions ---
+      function appendStrongText(parent, label, text) {
+        if (text && text !== '—') {
+            const p = document.createElement('p');
+            p.innerHTML = `<strong>${label}:</strong> ${text}`;
+            parent.appendChild(p);
+        }
+      }
+      
+      function appendList(parent, label, text, canAddWords) {
+        if (text && text.trim() && text !== '—') {
+            const div = document.createElement('div');
+            let html = `<strong>${label}:</strong><ul>`;
+            text.split('\n').forEach(itemText => {
+                if (itemText) {
+                    const word = itemText.replace(/• /g, '').trim();
+                    const safeWord = word.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+                    html += `<li>${word}`;
+                    if (canAddWords) {
+                        html += ` <button class="add-word-btn" title="Add &quot;${safeWord}&quot; to your list" data-word="${safeWord}">+</button>`;
+                    }
+                    html += `</li>`;
+                }
+            });
+            div.innerHTML = html + '</ul>';
+            parent.appendChild(div);
+        }
+      }
+
+      function showError(error) {
+        contentArea.className = 'has-error';
+        document.getElementById('error-message').textContent = 'Error: ' + (error.message || error);
+      }
+
+      function showToast(message) {
+        let toast = document.querySelector('.toast');
+        if (!toast) {
+          toast = document.createElement('div');
+          toast.className = 'toast';
+          document.body.appendChild(toast);
+        }
+        toast.textContent = message;
+        toast.classList.add('show');
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 3000);
+      }
+    </script>
+</body>
+</html>
