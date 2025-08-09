@@ -31,20 +31,36 @@
       }
       
       /* --- State Management --- */
-      #loading, #error-message, #no-words-message, #word-card {
+      #loading, #error-message, #no-words-message, #word-card, #session-complete {
         display: none;
       }
       #review-container.is-loading #loading,
       #review-container.has-error #error-message,
       #review-container.is-empty #no-words-message,
-      #review-container.is-reviewing #word-card {
+      #review-container.is-reviewing #word-card,
+      #review-container.is-complete #session-complete {
         display: flex;
       }
       
-      #word-card {
+      #word-card, #session-complete {
         width: 100%;
         height: 100%;
         flex-direction: column;
+        align-items: center;
+        scroll-behavior: auto;
+      }
+      
+      /* --- Progress Counter Styling --- */
+      #progress-counter {
+        background-color: #e3f2fd;
+        color: #1976d2;
+        padding: 8px 12px;
+        border-radius: 20px;
+        font-size: 0.9em;
+        font-weight: 600;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        margin-left: 15px;
+        display: flex;
         align-items: center;
       }
       
@@ -72,6 +88,7 @@
       }
       #word-card.is-initial #answer-display,
       #word-card.is-initial #srs-buttons {
+        scroll-behavior: auto;
         display: none;
       }
 
@@ -121,6 +138,7 @@
         width: 100%;
         padding-right: 15px;
         box-sizing: border-box;
+        scroll-behavior: auto;
       }
       
       .button-group {
@@ -136,7 +154,7 @@
       }
 
       #srs-buttons {
-         border-top: 1px solid #e0e0e0;
+          border-top: 1px solid #e0e0e0;
       }
       
       button {
@@ -149,6 +167,7 @@
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         font-weight: 500;
         min-width: 90px;
+        line-height: 1.2; /* Adjust for multi-line text */
       }
       button:hover {
         transform: translateY(-2px);
@@ -163,6 +182,13 @@
       }
       .srs-btn {
         color: white;
+      }
+      /* Style for the interval text inside buttons */
+      .srs-btn small {
+        display: block;
+        font-size: 0.8em;
+        margin-top: 3px;
+        opacity: 0.8;
       }
       #again-btn { background-color: #d32f2f; }
       #again-btn:hover { background-color: #b71c1c; }
@@ -244,6 +270,84 @@
         border-top: 1px solid #e0e0e0;
         margin: 15px 0;
       }
+      .dictionary-links {
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid #e0e0e0;
+        text-align: center;
+      }
+      .dictionary-links a {
+        display: inline-flex;
+        align-items: center;
+        text-decoration: none;
+        color: #5f6368;
+        background-color: #f7f9fc;
+        padding: 8px 12px;
+        border-radius: 20px;
+        margin: 0 5px;
+        font-size: 0.9em;
+        transition: all 0.2s ease;
+      }
+      .dictionary-links a:hover {
+        background-color: #e3f2fd;
+        color: #1976d2;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      .dictionary-links span {
+        margin-left: 6px;
+      }
+      /* Styles for session complete screen */
+      #session-complete {
+        justify-content: center;
+        text-align: center;
+      }
+      #review-more-btn {
+        background-color: #0d47a1;
+        color: white;
+        margin-top: 15px;
+      }
+      #review-more-btn:hover {
+        background-color: #0b3a7d;
+      }
+      /* Styles for the "Add" button and toast notifications */
+      .add-word-btn {
+        margin-left: 8px;
+        padding: 2px 8px;
+        font-size: 0.8em;
+        cursor: pointer;
+        border-radius: 4px;
+        border: 1px solid #90a4ae;
+        background-color: #eceff1;
+        color: #37474f;
+        font-weight: 500;
+        min-width: auto;
+        box-shadow: none;
+      }
+      .add-word-btn:hover {
+        background-color: #cfd8dc;
+      }
+      .add-word-btn:disabled {
+        cursor: not-allowed;
+        background-color: #e8f5e9;
+        color: #2e7d32;
+        border-color: #a5d6a7;
+      }
+      .toast {
+        position: fixed;
+        bottom: -100px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #333;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        transition: bottom 0.5s ease;
+        z-index: 1000;
+      }
+      .toast.show {
+        bottom: 20px;
+      }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   </head>
@@ -253,7 +357,9 @@
       <div id="error-message"></div>
       <div id="no-words-message">No words due for review today. Great job!</div>
 
-      <div id="word-card">
+      <div id="word-card" class="hidden">
+        
+        
         <div id="word-header">
             <div id="word-display"></div>
             <div id="pronunciation-group"></div>
@@ -263,7 +369,7 @@
         
         <div class="button-group" id="show-answer-group">
           <button id="show-answer-btn">Show Answer</button>
-          <button id="play-scramble-btn">Play Scramble</button> <!-- **NEW** -->
+          <button id="play-scramble-btn">Play Scramble</button>
         </div>
         <div id="srs-buttons" class="button-group">
           <button id="again-btn" class="srs-btn">Again</button>
@@ -272,14 +378,70 @@
           <button id="easy-btn" class="srs-btn">Easy</button>
           <input type="number" id="manual-days-input" min="1" placeholder="Days">
           <button id="manual-set-btn">Set</button>
+          <div id="progress-counter">0 / 0</div>
         </div>
+      </div>
+      
+      <div id="session-complete">
+        <h2>Review Complete!</h2>
+        <p>You've finished all your scheduled words for today.</p>
+        <button id="review-more-btn">Review 10 More Words</button>
       </div>
     </div>
 
     <script>
+      // This sample data array can be used for local testing if you switch the function call below.
+      const sampleWords = [
+        {
+          word: "Ebullient",
+          row: 2,
+          reviewCount: 1,
+          totalReviews: 2,
+          ukPronunciation: "/ɪˈbʌl.i.ənt/",
+          usPronunciation: "/ɪˈbʊl.jənt/",
+          partOfSpeech: "adjective",
+          definitions: ["Cheerful and full of energy.", "Boiling or agitated as if boiling."],
+          persianTranslations: ["شاد و پر انرژی", "جوشان"],
+          definitionExamples: ["She sounded ebullient and happy.", "The ebullient waters of the hot spring."],
+          generalExamples: [],
+          synonyms: "exuberant\nbuoyant\nchipper",
+          antonyms: "depressed\nsullen",
+          notes: "Comes from the Latin 'ebullire', meaning 'to boil over'.",
+          wordFamily: "ebullience (noun)",
+          cambridgeUrl: "https://dictionary.cambridge.org/dictionary/english/ebullient",
+          oxfordUrl: "https://www.oxfordlearnersdictionaries.com/definition/english/ebullient"
+        },
+        {
+          word: "Serendipity",
+          row: 3,
+          reviewCount: 0,
+          totalReviews: 0,
+          ukPronunciation: "/ˌser.ənˈdɪp.ə.ti/",
+          usPronunciation: "/ˌser.ənˈdɪp.ə.t̬i/",
+          partOfSpeech: "noun",
+          definitions: ["The occurrence and development of events by chance in a happy or beneficial way."],
+          persianTranslations: ["خوش‌اقبالی", "کشف غیرمنتظره"],
+          definitionExamples: ["Our meeting was pure serendipity."],
+          generalExamples: [],
+          synonyms: "fluke\nchance\nhappy accident",
+          antonyms: "misfortune\nbad luck",
+          notes: "Coined by Horace Walpole in 1754.",
+          wordFamily: "serendipitous (adjective)",
+          cambridgeUrl: "https://dictionary.cambridge.org/dictionary/english/serendipity",
+          oxfordUrl: "https://www.oxfordlearnersdictionaries.com/definition/english/serendipity"
+        }
+      ];
+
       let wordsToReview = [];
       let currentWordIndex = 0;
+      let totalWordsInSession = 0;
+      let reviewedWords = 0;
       const reviewContainer = document.getElementById('review-container');
+
+      function updateProgressCounter() {
+        const progressCounter = document.getElementById('progress-counter');
+        progressCounter.textContent = `${reviewedWords} / ${totalWordsInSession}`;
+      }
 
       function playAudio(url) {
         const audio = new Audio(url);
@@ -287,28 +449,61 @@
       }
 
       document.addEventListener('DOMContentLoaded', function() {
-        google.script.run
-          .withSuccessHandler(initializeReview)
-          .withFailureHandler(showError)
-          .getWordsDueForReview();
+        console.log("[Frontend] Dialog loaded. Requesting words...");
+        try {
+          // initializeReview(sampleWords)
+          // --- MODIFIED: Restored the original backend call ---
+          google.script.run
+            .withSuccessHandler(initializeReview)
+            .withFailureHandler(showError)
+            .getWordsDueForReview();
 
-        document.getElementById('pronunciation-group').addEventListener('click', function(event) {
-          const button = event.target.closest('.play-button');
-          if (button) {
-            const audioUrl = button.dataset.audioUrl;
-            if (audioUrl) playAudio(audioUrl);
-          }
-        });
+          document.getElementById('pronunciation-group').addEventListener('click', function(event) {
+            const button = event.target.closest('.play-button');
+            if (button) {
+              const audioUrl = button.dataset.audioUrl;
+              if (audioUrl) playAudio(audioUrl);
+            }
+          });
+
+          document.getElementById('review-more-btn').addEventListener('click', fetchMoreWords);
+          
+          document.getElementById('answer-display').addEventListener('click', function(event) {
+            if (event.target.classList.contains('add-word-btn')) {
+                const button = event.target;
+                const wordToAdd = button.dataset.word;
+                // console.log(wordToAdd);
+                button.disabled = true;
+                button.textContent = 'Adding...';
+                
+                google.script.run
+                    .withSuccessHandler(message => {
+                        showToast(message);
+                        button.textContent = '✓ Added';
+                    })
+                    .withFailureHandler(showError)
+                    .addNewWord(wordToAdd);
+            }
+          });
+        } catch (e) {
+          showError(e);
+        }
       });
 
       function initializeReview(words) {
+        console.log("[Frontend] Received words from backend:", words);
         try {
           wordsToReview = words;
-          if (wordsToReview.length > 0) {
+          if (wordsToReview && wordsToReview.length > 0) {
+            totalWordsInSession = wordsToReview.length;
+            reviewedWords = 0;
+            console.log("[Frontend] Words available. Starting review session.");
             reviewContainer.className = 'is-reviewing';
+            updateProgressCounter();
             displayCurrentWord();
           } else {
-            reviewContainer.className = 'is-empty';
+            console.log("[Frontend] No words due for review. Showing complete screen.");
+            reviewContainer.className = 'is-complete';
           }
         } catch (e) {
           showError(e);
@@ -319,6 +514,7 @@
         try {
           if (currentWordIndex < wordsToReview.length) {
             const wordData = wordsToReview[currentWordIndex];
+            console.log("[Frontend] Displaying word:", wordData.word);
             const wordCard = document.getElementById('word-card');
             
             wordCard.classList.add('is-initial');
@@ -326,9 +522,23 @@
             
             const answerDisplay = document.getElementById('answer-display');
             answerDisplay.innerHTML = '';
+            answerDisplay.scrollTop = 0;
             
             const pronunciationGroup = document.getElementById('pronunciation-group');
             pronunciationGroup.innerHTML = '';
+
+            const reviewCount = wordData.reviewCount || 0;
+            const totalReviews = wordData.totalReviews || 0;
+            let goodDays = (totalReviews < 3) ? [3, 7, 14][totalReviews] : 30;
+            let easyDays = (totalReviews < 3) ? [7, 30, 90][totalReviews] : 180;
+
+            const formatDays = (days) => days === 1 ? '1 day' : `${days} days`;
+
+            document.getElementById('again-btn').innerHTML = `Again<small>Today</small>`;
+            document.getElementById('hard-btn').innerHTML = `Hard<small>1 day</small>`;
+            document.getElementById('good-btn').innerHTML = `Good<small>${formatDays(goodDays)}</small>`;
+            document.getElementById('easy-btn').innerHTML = `Easy<small>${formatDays(easyDays)}</small>`;
+
 
             const appendStrongText = (parent, label, text) => {
               if (text && text !== '—') {
@@ -338,20 +548,45 @@
               }
             };
             
-            const appendList = (parent, label, text) => {
-                 if (text && text.trim() && text !== '—') {
+            const escapeHtmlAttr = (str) => {
+                return str
+                    .replace(/&/g, "&amp;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;");
+            };
+            // **FIXED**: The second, more robust declaration of this function is used.
+            const appendList = (parent, label, text, canAddWords) => {
+                if (canAddWords === undefined) {
+                    canAddWords = false;
+                }
+
+                if (text && text.trim() && text !== '—') {
                     const div = document.createElement('div');
                     let html = `<strong>${label}:</strong><ul>`;
-                    text.split('\n').forEach(item => {
-                        if(item) html += `<li>${item.replace(/• /g, '')}</li>`;
+
+                    text.split('\n').forEach(itemText => {
+                        if (itemText) {
+                            const word = itemText.replace(/• /g, '').trim();
+                            html += `<li>${word}`;
+                            if (canAddWords) {
+                                // We use a <button> with attributes as string
+                                const safeWord = escapeHtmlAttr(word);
+                                html += ` <button class="add-word-btn" title="Add &quot;${safeWord}&quot; to your list" data-word="${safeWord}">+</button>`;
+
+                            }
+                            html += `</li>`;
+                        }
                     });
+
                     html += '</ul>';
                     div.innerHTML = html;
                     parent.appendChild(div);
-                 }
+                }
             };
 
-            // --- PRONUNCIATION BLOCK ---
+
             if ((wordData.ukPronunciation && wordData.ukPronunciation !== '—') ||
                 (wordData.usPronunciation && wordData.usPronunciation !== '—')) {
               
@@ -383,7 +618,6 @@
               }
             }
 
-            // --- MEANINGS AND EXAMPLES BLOCK ---
             appendStrongText(answerDisplay, 'Part of Speech', wordData.partOfSpeech);
             if (wordData.definitions && wordData.definitions.length > 0 && wordData.definitions[0] !== '• —') {
                 const meaningsTitle = document.createElement('strong');
@@ -417,18 +651,74 @@
                 answerDisplay.appendChild(document.createElement('hr'));
             }
 
-            // --- OTHER INFO ---
-            appendList(answerDisplay, 'General Examples', (wordData.generalExamples || []).join('\n'));
-            appendList(answerDisplay, 'Synonyms', wordData.synonyms);
-            appendList(answerDisplay, 'Antonyms', wordData.antonyms);
-            appendList(answerDisplay, 'Notes', wordData.notes);
-            appendList(answerDisplay, 'Word Family', wordData.wordFamily);
+            appendList(answerDisplay, 'General Examples', (wordData.generalExamples || []).join('\n'), false);
+            appendList(answerDisplay, 'Synonyms', wordData.synonyms, true);
+            appendList(answerDisplay, 'Antonyms', wordData.antonyms, true);
+            appendList(answerDisplay, 'Notes', wordData.notes, false);
+            appendList(answerDisplay, 'Word Family', wordData.wordFamily, true);
             
+            const linksContainer = document.createElement('div');
+            linksContainer.className = 'dictionary-links';
+
+            if (wordData.cambridgeUrl) {
+                const link = document.createElement('a');
+                link.href = wordData.cambridgeUrl;
+                link.target = '_blank';
+                link.innerHTML = '📖<span>Cambridge</span>';
+                linksContainer.appendChild(link);
+            }
+            if (wordData.oxfordUrl) {
+                const link = document.createElement('a');
+                link.href = wordData.oxfordUrl;
+                link.target = '_blank';
+                link.innerHTML = '📚<span>Oxford</span>';
+                linksContainer.appendChild(link);
+            }
+
+            if (linksContainer.hasChildNodes()) {
+                answerDisplay.appendChild(linksContainer);
+            }
+            requestAnimationFrame(() => {
+              answerDisplay.scrollTop = 0;
+              window.scrollTo(0, 0);
+            });
+
           } else {
-            reviewContainer.className = 'is-empty';
+            console.log("[Frontend] No more words in the current queue. Showing complete screen.");
+            reviewContainer.className = 'is-complete';
           }
         } catch (e) {
           showError(e);
+        }
+      }
+
+      function fetchMoreWords() {
+        const btn = document.getElementById('review-more-btn');
+        btn.disabled = true;
+        btn.textContent = 'Loading...';
+        console.log("[Frontend] Fetching 10 more words...");
+        google.script.run
+          .withSuccessHandler(appendMoreWords)
+          .withFailureHandler(showError)
+          .getFutureWords(10);
+      }
+
+      function appendMoreWords(newWords) {
+        console.log("[Frontend] Received future words:", newWords);
+        const btn = document.getElementById('review-more-btn');
+        btn.disabled = false;
+        btn.textContent = 'Review 10 More Words';
+
+        if (newWords && newWords.length > 0) {
+          wordsToReview.push(...newWords);
+          totalWordsInSession = wordsToReview.length;
+          reviewContainer.className = 'is-reviewing';
+          updateProgressCounter();
+          setTimeout(() => {
+            displayCurrentWord();
+          }, 0);
+        } else {
+          document.getElementById('session-complete').innerHTML = '<h2>All Done!</h2><p>You have reviewed every word in your list. Great job!</p>';
         }
       }
 
@@ -436,7 +726,6 @@
         document.getElementById('word-card').classList.remove('is-initial');
       });
       
-      // **NEW**: Event listener for the scramble button
       document.getElementById('play-scramble-btn').addEventListener('click', function() {
         const wordData = wordsToReview[currentWordIndex];
         const hint = (wordData.definitions[0] || '').replace(/• /g, '');
@@ -459,26 +748,60 @@
 
       function submitReview(difficulty) {
         const wordData = wordsToReview[currentWordIndex];
+        console.log(`[Frontend] Submitting review for "${wordData.word}" with difficulty: ${difficulty}`);
+        
         google.script.run
             .withFailureHandler(showError)
             .updateWordReview({
                 row: wordData.row,
                 difficulty: difficulty,
-                reviewCount: wordData.reviewCount
+                reviewCount: wordData.reviewCount,
+                totalReviews: wordData.totalReviews
             });
 
         if (difficulty === 'Again') {
-            wordsToReview.push(wordData);
+          wordsToReview.push(wordData);
+          totalWordsInSession = wordsToReview.length;
+        } else {
+          reviewedWords++;
         }
 
         currentWordIndex++;
+        updateProgressCounter();
+
+
+          // Add these lines right before displayCurrentWord()
+        document.getElementById('answer-display').scrollTop = 0;
+        setTimeout(() => {
+          document.getElementById('answer-display').scrollTop = 0;
+        }, 10);
         displayCurrentWord();
       }
 
       function showError(error) {
+        console.error("Dialog error:", error);
+
         reviewContainer.className = 'has-error';
         document.getElementById('error-message').textContent = 'Error: ' + (error.message || error);
-        console.error("Dialog error:", error);
+      }
+
+      function showToast(message) {
+        let toast = document.querySelector('.toast');
+        if (!toast) {
+          toast = document.createElement('div');
+          toast.className = 'toast';
+          document.body.appendChild(toast);
+        }
+        toast.textContent = message;
+        
+        setTimeout(() => toast.classList.add('show'), 10);
+
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => {
+              if (toast) document.body.removeChild(toast);
+            }, 500);
+        }, 3000);
       }
     </script>
   </body>

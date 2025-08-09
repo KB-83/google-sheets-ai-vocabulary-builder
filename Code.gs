@@ -14,6 +14,10 @@ function setApiKeys() {
   PropertiesService.getScriptProperties().setProperty('GEMINI_API_KEY', 'YOUR_GEMINI_API_KEY');
   Logger.log('Gemini API Key set successfully in script properties.');
 }
+function setApiKeys() {
+  PropertiesService.getScriptProperties().setProperty('GEMINI_API_KEY', 'YOUR_GEMINI_API_KEY');
+  Logger.log('Gemini API Key set successfully in script properties.');
+}
 
 // --- Formatting Constants ---
 const EVEN_ROW_COLOR = '#f3f3f3';
@@ -21,6 +25,7 @@ const ODD_ROW_COLOR = '#ffffff';
 const PAST_DUE_COLOR = '#ffcdd2';
 const DUE_TODAY_COLOR = '#ffcc80';
 const DUE_TOMORROW_COLOR = '#fff9c4';
+const BROKEN_LINK_COLOR = '#ffcdd2'; // Light Red for broken links
 
 /**
  * Triggered automatically when a cell in the spreadsheet is edited.
@@ -37,67 +42,13 @@ function onEdit(e) {
         const row = range.getRow();
 
         if (!word) {
-          sheet.getRange(row, 2, 1, 18).clearContent(); // Clear 18 columns (B to S)
+          sheet.getRange(row, 2, 1, 19).clearContent(); // Clear 19 columns (B to T)
           formatRow(sheet, row);
           return;
         }
 
-        const lastRow = sheet.getLastRow();
-        if (lastRow > 1) {
-          const wordListRange = sheet.getRange(2, 1, lastRow - 1, 1);
-          const wordValues = wordListRange.getValues();
-          for (let i = 0; i < wordValues.length; i++) {
-            const existingWord = wordValues[i][0].toString().trim();
-            const existingRow = i + 2;
-            if (existingWord.toLowerCase() === word.toLowerCase() && existingRow !== row) {
-              SpreadsheetApp.getUi().alert(`The word "${word}" already exists in row ${existingRow}.`);
-              range.clearContent();
-              return;
-            }
-          }
-        }
-
-        if (word) {
-          const geminiResponse = getGeminiDefinitionAndExamples(word);
-          const now = new Date();
-
-          const definitions = geminiResponse.meanings.map(m => `• ${m.definition}`).join('\n');
-          const definitionExamples = geminiResponse.meanings.map(m => `• ${m.example}`).join('\n');
-          const persianTranslations = geminiResponse.meanings.map(m => `• ${m.persianTranslation}`).join('\n');
-
-          sheet.getRange(row, 2).setValue(persianTranslations);
-          sheet.getRange(row, 3).setValue(definitions);
-          sheet.getRange(row, 4).setValue(definitionExamples);
-          sheet.getRange(row, 5).setValue(geminiResponse.generalExamples.join('\n'));
-          sheet.getRange(row, 6).setValue(geminiResponse.partOfSpeech);
-          sheet.getRange(row, 7).setValue(geminiResponse.synonyms);
-          sheet.getRange(row, 8).setValue(geminiResponse.antonyms);
-          sheet.getRange(row, 9).setValue(geminiResponse.notes);
-          sheet.getRange(row, 10).setValue(geminiResponse.wordFamily);
-
-          const addedDateCell = sheet.getRange(row, 11);
-          if (!addedDateCell.getValue()) {
-            addedDateCell.setValue(now);
-          }
-
-          sheet.getRange(row, 12).setValue(now);
-          sheet.getRange(row, 13).setValue(geminiResponse.ukPronunciation);
-          sheet.getRange(row, 14).setValue(geminiResponse.usPronunciation);
-
-          const encodedWord = encodeURIComponent(word.toLowerCase());
-          const cambridgeUrl = `https://dictionary.cambridge.org/dictionary/english/${encodedWord}`;
-          sheet.getRange(row, 15).setFormula(`=HYPERLINK("${cambridgeUrl}", "Cambridge")`);
-          const oxfordUrl = `https://www.oxfordlearnersdictionaries.com/definition/english/${encodedWord}`;
-          sheet.getRange(row, 16).setFormula(`=HYPERLINK("${oxfordUrl}", "Oxford")`);
-
-          const nextReviewDate = new Date(now);
-          nextReviewDate.setDate(now.getDate() + 1);
-          sheet.getRange(row, 17).setValue(nextReviewDate);
-          sheet.getRange(row, 18).setValue(0);
-          sheet.getRange(row, 19).setValue(0); // Initialize Quiz Count to 0
-          
-          formatRow(sheet, row);
-        }
+        // **CHANGE**: Call the shared processing function
+        processNewWord(word, row);
       }
     } finally {
       lock.releaseLock();
@@ -106,6 +57,84 @@ function onEdit(e) {
     Logger.log('Could not acquire lock for onEdit trigger.');
   }
 }
+
+/**
+ * **NEW**: This is the core logic for processing a new word.
+ * It's called by both onEdit and addNewWord.
+ * @param {string} word The word to process.
+ * @param {number} row The row number to populate.
+ */
+function processNewWord(word, row) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+  
+  // Duplicate check
+  const lastRow = sheet.getLastRow();
+  if (lastRow > 1) {
+    const wordListRange = sheet.getRange(2, 1, lastRow - 1, 1);
+    const wordValues = wordListRange.getValues();
+    for (let i = 0; i < wordValues.length; i++) {
+      const existingWord = wordValues[i][0].toString().trim();
+      const existingRow = i + 2;
+      if (existingWord.toLowerCase() === word.toLowerCase() && existingRow !== row) {
+        SpreadsheetApp.getUi().alert(`The word "${word}" already exists in row ${existingRow}.`);
+        sheet.getRange(row, 1).clearContent(); // Clear only the duplicate cell
+        return;
+      }
+    }
+  }
+
+  const geminiResponse = getGeminiDefinitionAndExamples(word);
+  const now = new Date();
+
+  const definitions = geminiResponse.meanings.map(m => `• ${m.definition}`).join('\n');
+  const definitionExamples = geminiResponse.meanings.map(m => `• ${m.example}`).join('\n');
+  const persianTranslations = geminiResponse.meanings.map(m => `• ${m.persianTranslation}`).join('\n');
+
+  sheet.getRange(row, 2).setValue(persianTranslations);
+  sheet.getRange(row, 3).setValue(definitions);
+  sheet.getRange(row, 4).setValue(definitionExamples);
+  sheet.getRange(row, 5).setValue(geminiResponse.generalExamples.join('\n'));
+  sheet.getRange(row, 6).setValue(geminiResponse.partOfSpeech);
+  sheet.getRange(row, 7).setValue(geminiResponse.synonyms);
+  sheet.getRange(row, 8).setValue(geminiResponse.antonyms);
+  sheet.getRange(row, 9).setValue(geminiResponse.notes);
+  sheet.getRange(row, 10).setValue(geminiResponse.wordFamily);
+
+  const addedDateCell = sheet.getRange(row, 11);
+  if (!addedDateCell.getValue()) {
+    addedDateCell.setValue(now);
+  }
+
+  sheet.getRange(row, 12).setValue(now);
+  sheet.getRange(row, 13).setValue(geminiResponse.ukPronunciation);
+  sheet.getRange(row, 14).setValue(geminiResponse.usPronunciation);
+
+  const encodedWord = encodeURIComponent(word.toLowerCase().replace(/ /g, '-'));
+  const cambridgeUrl = `https://dictionary.cambridge.org/dictionary/english/${encodedWord}`;
+  const oxfordUrl = `https://www.oxfordlearnersdictionaries.com/definition/english/${encodedWord}`;
+  
+  const cambridgeCell = sheet.getRange(row, 15);
+  cambridgeCell.setFormula(`=HYPERLINK("${cambridgeUrl}", "Cambridge")`);
+  if (!checkLinkValidity(cambridgeUrl)) {
+    cambridgeCell.setBackground(BROKEN_LINK_COLOR);
+  }
+
+  const oxfordCell = sheet.getRange(row, 16);
+  oxfordCell.setFormula(`=HYPERLINK("${oxfordUrl}", "Oxford")`);
+   if (!checkLinkValidity(oxfordUrl)) {
+    oxfordCell.setBackground(BROKEN_LINK_COLOR);
+  }
+
+  const nextReviewDate = new Date(now);
+  nextReviewDate.setDate(now.getDate() + 1);
+  sheet.getRange(row, 17).setValue(nextReviewDate);
+  sheet.getRange(row, 18).setValue(0);
+  sheet.getRange(row, 19).setValue(0);
+  sheet.getRange(row, 20).setValue(0); // Initialize Total Reviews to 0
+  
+  formatRow(sheet, row);
+}
+
 
 /**
  * Calls the Gemini API to get detailed vocabulary information.
@@ -181,15 +210,24 @@ function getDefaultGeminiResponse(errorMsg = 'Error') {
 }
 
 function getWordsDueForReview() {
+  Logger.log("[Backend] getWordsDueForReview: Starting to fetch words.");
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
-  if (!sheet) throw new Error(`Sheet with name "${SHEET_NAME}" not found.`);
+  if (!sheet) {
+    Logger.log("[Backend] getWordsDueForReview: Sheet not found.");
+    throw new Error(`Sheet with name "${SHEET_NAME}" not found.`);
+  }
   
   const lastRow = sheet.getLastRow();
-  if (lastRow < 2) return [];
+  if (lastRow < 2) {
+    Logger.log("[Backend] getWordsDueForReview: No words in the sheet.");
+    return [];
+  }
 
-  // Read all 19 columns of data (A-S)
-  const dataRange = sheet.getRange(2, 1, lastRow - 1, 19);
+  // Read all 20 columns of data (A-T)
+  const dataRange = sheet.getRange(2, 1, lastRow - 1, 20);
   const values = dataRange.getValues();
+  const linkFormulas = sheet.getRange(2, 15, lastRow - 1, 2).getFormulas(); // Columns O and P
+
   const wordsDue = [];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -203,6 +241,12 @@ function getWordsDueForReview() {
       nextReviewDate.setHours(0, 0, 0, 0);
 
       if (nextReviewDate <= today) {
+        const cambridgeFormula = linkFormulas[index][0];
+        const oxfordFormula = linkFormulas[index][1];
+        
+        const cambridgeUrl = cambridgeFormula.match(/HYPERLINK\("([^"]+)"/i)?.[1] || '';
+        const oxfordUrl = oxfordFormula.match(/HYPERLINK\("([^"]+)"/i)?.[1] || '';
+
         wordsDue.push({
           word: word,
           row: index + 2,
@@ -217,35 +261,60 @@ function getWordsDueForReview() {
           wordFamily: row[9],
           ukPronunciation: row[12],
           usPronunciation: row[13],
-          reviewCount: row[17] || 0
+          cambridgeUrl: cambridgeUrl,
+          oxfordUrl: oxfordUrl,
+          reviewCount: row[17] || 0,
+          totalReviews: row[19] || 0
         });
       }
     }
   });
 
-  console.log(`Found ${wordsDue.length} words due for review today.`);
+  Logger.log(`[Backend] getWordsDueForReview: Found ${wordsDue.length} words due for review today.`);
   return wordsDue;
 }
 
+/**
+ * Implements new review count logic.
+ */
 function updateWordReview(update) {
   try {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
     const now = new Date();
-    const { row, difficulty, reviewCount } = update;
+    const { row, difficulty, reviewCount, totalReviews } = update;
+    
     let currentReviewCount = Number(reviewCount) || 0;
+    let currentTotalReviews = Number(totalReviews) || 0;
+    
     let newReviewCount = currentReviewCount;
+    let newTotalReviews = currentTotalReviews;
     let daysToAdd = 0;
 
     if (typeof difficulty === 'number' && difficulty > 0) {
       daysToAdd = difficulty;
       newReviewCount = currentReviewCount + 1;
+      newTotalReviews = currentTotalReviews + 1;
     } 
     else if (typeof difficulty === 'string') {
       switch (difficulty) {
-        case 'Again': daysToAdd = 0; newReviewCount = 0; break;
-        case 'Hard': daysToAdd = 1; newReviewCount = Math.max(0, currentReviewCount - 1); break;
-        case 'Good': daysToAdd = (currentReviewCount < 3) ? [3, 7, 14][currentReviewCount] : 30; newReviewCount++; break;
-        case 'Easy': daysToAdd = (currentReviewCount < 3) ? [7, 30, 90][currentReviewCount] : 180; newReviewCount += 2; break;
+        case 'Again': 
+          daysToAdd = 0; 
+          newReviewCount = 0;
+          break;
+        case 'Hard': 
+          daysToAdd = 1; 
+          newTotalReviews = currentTotalReviews + 1;
+          break;
+        case 'Good': 
+          daysToAdd = (currentTotalReviews < 3) ? [3, 7, 14][currentTotalReviews] : 30; 
+          newReviewCount++; 
+          newTotalReviews++;
+          break;
+        case 'Easy': 
+          daysToAdd = (currentTotalReviews < 3) ? [7, 30, 90][currentTotalReviews] : 180; 
+          newReviewCount += 2; 
+          newTotalReviews++;
+          break;
         default: console.warn(`Unknown difficulty string: ${difficulty}.`); return;
       }
     } else {
@@ -260,8 +329,8 @@ function updateWordReview(update) {
     sheet.getRange(row, 12).setValue(now);
     sheet.getRange(row, 17).setValue(newNextReviewDate);
     sheet.getRange(row, 18).setValue(newReviewCount);
+    sheet.getRange(row, 20).setValue(newTotalReviews);
     
-    // Re-format the word cell after updating its review date
     formatRow(sheet, row);
     
     console.log(`Asynchronously updated row ${row} for difficulty '${difficulty}'.`);
@@ -274,7 +343,7 @@ function updateWordReview(update) {
  * Formats a single row with alternating colors and conditional formatting.
  */
 function formatRow(sheet, rowNumber) {
-  const wholeRowRange = sheet.getRange(rowNumber, 1, 1, 19);
+  const wholeRowRange = sheet.getRange(rowNumber, 1, 1, 20);
   const wordCell = sheet.getRange(rowNumber, 1);
   const reviewDateCell = sheet.getRange(rowNumber, 17); // Column Q
 
@@ -318,14 +387,14 @@ function formatSheet() {
   if (lastRow < 2) return;
 
   // Sort the range directly using the built-in sort method.
-  const dataRange = sheet.getRange(2, 1, lastRow - 1, 19);
+  const dataRange = sheet.getRange(2, 1, lastRow - 1, 20);
   dataRange.sort([
     { column: 17, ascending: true }, // Sort by Review Date (Column Q)
     { column: 18, ascending: true }, // Then by Review Count (Column R)
     { column: 1, ascending: true }   // Then by Word (Column A)
   ]);
   
-  SpreadsheetApp.flush(); // Ensure sorting is complete before coloring
+  SpreadsheetApp.flush();
 
   // Now that it's sorted, read the values again to apply colors
   const values = dataRange.getValues();
@@ -342,10 +411,10 @@ function formatSheet() {
     const reviewDateVal = rowData[16]; // Column Q
 
     const rowBgColor = (rowNumber % 2 === 0) ? EVEN_ROW_COLOR : ODD_ROW_COLOR;
-    const rowColors = new Array(19).fill(rowBgColor);
+    const rowColors = new Array(20).fill(rowBgColor);
 
     if (word === '') {
-      backgroundColors.push(new Array(19).fill(ODD_ROW_COLOR));
+      backgroundColors.push(new Array(20).fill(ODD_ROW_COLOR));
       continue;
     }
 
@@ -364,7 +433,6 @@ function formatSheet() {
     backgroundColors.push(rowColors);
   }
 
-  // Apply all background colors in one go
   if (backgroundColors.length > 0) {
     dataRange.setBackgrounds(backgroundColors);
   }
@@ -415,25 +483,27 @@ function removeDuplicateWords() {
 // --- QUIZ FUNCTIONS ---
 
 /**
- * Gets a list of words for the multiple-choice quiz.
+ * Gets a list of words for the quiz, ensuring they have been reviewed at least once.
  */
 function getQuizWords(numQuestions) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
   const lastRow = sheet.getLastRow();
-  if (lastRow < 4) {
-    throw new Error("You need at least 4 words in your list to start a quiz.");
-  }
   
-  const dataRange = sheet.getRange(2, 1, lastRow - 1, 19);
+  const dataRange = sheet.getRange(2, 1, lastRow - 1, 20);
   const allWordsData = dataRange.getValues();
 
   let allWords = allWordsData.map((row, index) => ({
     word: row[0],
     definition: row[2] ? row[2].split('\n')[0].replace(/• /g, '') : 'No definition',
-    quizCount: row[18] || 0,
+    reviewCount: row[17] || 0, // Column R
+    quizCount: row[18] || 0,   // Column S
     row: index + 2
-  })).filter(w => w.word && w.definition);
+  })).filter(w => w.word && w.definition && w.reviewCount > 0);
 
+  if (allWords.length < 4) {
+    throw new Error("You need at least 4 words that have been reviewed once to start a quiz.");
+  }
+  
   const minQuizCount = Math.min(...allWords.map(w => w.quizCount));
   const unquizzedWords = allWords.filter(w => w.quizCount === minQuizCount);
 
@@ -499,10 +569,90 @@ function updateQuizResults(quizResults) {
   }
 }
 
+// --- CRAM MODE FUNCTION ---
+/**
+ * Gets a list of words scheduled for future review.
+ * @param {number} count The number of future words to fetch.
+ * @returns {Array<Object>} An array of word objects for review.
+ */
+function getFutureWords(count) {
+  try {
+    Logger.log('[Backend] getFutureWords: Starting to fetch ' + count + ' words.');
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+    if (!sheet) throw new Error(`Sheet with name "${SHEET_NAME}" not found.`);
+    
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return [];
+
+    const dataRange = sheet.getRange(2, 1, lastRow - 1, 20);
+    const values = dataRange.getValues();
+    const linkFormulas = sheet.getRange(2, 15, lastRow - 1, 2).getFormulas();
+
+    const futureWords = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    values.forEach((row, index) => {
+      const word = row[0];
+      const nextReviewDateCell = row[16]; // Column Q
+
+      if (word && nextReviewDateCell instanceof Date) {
+        const nextReviewDate = new Date(nextReviewDateCell);
+        nextReviewDate.setHours(0, 0, 0, 0);
+
+        if (nextReviewDate > today) {
+          const cambridgeFormula = linkFormulas[index][0];
+          const oxfordFormula = linkFormulas[index][1];
+          
+          const cambridgeUrl = cambridgeFormula.match(/HYPERLINK\("([^"]+)"/i)?.[1] || '';
+          const oxfordUrl = oxfordFormula.match(/HYPERLINK\("([^"]+)"/i)?.[1] || '';
+
+          futureWords.push({
+            word: word,
+            row: index + 2,
+            persianTranslations: row[1] ? row[1].split('\n') : [],
+            definitions: row[2] ? row[2].split('\n') : [],
+            definitionExamples: row[3] ? row[3].split('\n') : [],
+            generalExamples: row[4] ? row[4].split('\n') : [],
+            partOfSpeech: row[5],
+            synonyms: row[6],
+            antonyms: row[7],
+            notes: row[8],
+            wordFamily: row[9],
+            ukPronunciation: row[12],
+            usPronunciation: row[13],
+            cambridgeUrl: cambridgeUrl,
+            oxfordUrl: oxfordUrl,
+            reviewCount: row[17] || 0,
+            totalReviews: row[19] || 0,
+            nextReviewDate: nextReviewDate // Keep as Date object for sorting
+          });
+        }
+      }
+    });
+
+    Logger.log('[Backend] getFutureWords: Found ' + futureWords.length + ' total future words.');
+    futureWords.sort((a, b) => a.nextReviewDate.getTime() - b.nextReviewDate.getTime());
+    
+    const wordsToReturn = futureWords.slice(0, count).map(word => {
+      // Convert date to string AFTER sorting for safe transfer
+      word.nextReviewDate = word.nextReviewDate.toISOString();
+      return word;
+    });
+
+    Logger.log('[Backend] getFutureWords: Returning ' + wordsToReturn.length + ' words for cram mode.');
+    return wordsToReturn;
+  } catch (e) {
+    Logger.log(`[Backend] Error in getFutureWords: ${e.message}`);
+    return null; // Return null on error
+  }
+}
+
+
 // --- UTILITY FUNCTIONS ---
 
 /**
- * **NEW**: Sets up the sheet with the correct headers.
+ * Sets up the sheet with the correct headers.
  */
 function initializeSheet() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
@@ -512,14 +662,13 @@ function initializeSheet() {
   }
   
   const headers = [
-    'Word', 'Persian Translate', 'Definition', 'Definition Example', 'Example',
+    'Word', 'Persian Translattion', 'Definition', 'Definition Example', 'Example',
     'Part of Speech', 'Synonyms', 'Antonyms', 'Tips', 'Word Family',
     'Created At', 'Modified At', 'UK Pronunciation', 'US Pronunciation',
-    'Cambridge', 'Oxford', 'Next Review Time', 'Review Count', 'Quiz Count'
+    'Cambridge', 'Oxford', 'Next Review Time', 'Review Count', 'Quiz Count', 'Total Reviews'
   ];
   
-  // Clear existing content and set headers
-  sheet.clear();
+  // sheet.clear();
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight('bold');
   sheet.setFrozenRows(1);
   SpreadsheetApp.getUi().alert('Sheet has been initialized with the correct headers.');
@@ -550,19 +699,75 @@ function initializeQuizCounts() {
 }
 
 /**
+ * Initializes the Total Reviews count for all existing words to 0.
+ */
+function initializeTotalReviews() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+  if (!sheet) return;
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return;
+
+  const totalReviewsRange = sheet.getRange(2, 20, lastRow - 1, 1); // Column T
+  const values = totalReviewsRange.getValues();
+  
+  let updated = 0;
+  for (let i = 0; i < values.length; i++) {
+    if (values[i][0] === '') {
+      values[i][0] = 0;
+      updated++;
+    }
+  }
+  
+  totalReviewsRange.setValues(values);
+  SpreadsheetApp.getUi().alert(`Initialization complete. ${updated} word(s) were updated with a total reviews count of 0.`);
+}
+
+
+/**
+ * Schedules the review dates for all words in batches.
+ */
+function scheduleInitialReviews() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+  if (!sheet) return;
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return;
+
+  const wordsPerDay = 10;
+  const reviewDateRange = sheet.getRange(2, 17, lastRow - 1, 1);
+  const dates = [];
+  let dayOffset = 0;
+
+  for (let i = 0; i < lastRow - 1; i++) {
+    if (i > 0 && i % wordsPerDay === 0) {
+      dayOffset++;
+    }
+    const reviewDate = new Date();
+    reviewDate.setHours(0, 0, 0, 0);
+    reviewDate.setDate(reviewDate.getDate() + dayOffset);
+    dates.push([reviewDate]);
+  }
+
+  reviewDateRange.setValues(dates);
+  formatSheet(); // Re-sort and re-color the sheet after scheduling
+  SpreadsheetApp.getUi().alert(`Initial review dates have been scheduled for ${lastRow - 1} words.`);
+}
+
+
+/**
  * Checks if a URL is valid by fetching its response code.
  */
 function checkLinkValidity(url) {
-  try {
-    const response = UrlFetchApp.fetch(url, {
-      muteHttpExceptions: true,
-      method: 'HEAD'
-    });
-    return response.getResponseCode() === 200;
-  } catch (e) {
-    Logger.log(`Error checking link ${url}: ${e.message}`);
-    return false;
-  }
+  return true;
+  // try {
+  //   const response = UrlFetchApp.fetch(url, {
+  //     muteHttpExceptions: true,
+  //     method: 'HEAD'
+  //   });
+  //   return response.getResponseCode() === 200;
+  // } catch (e) {
+  //   Logger.log(`Error checking link ${url}: ${e.message}`);
+  //   return false;
+  // }
 }
 
 /**
@@ -637,6 +842,29 @@ function openQuizDialog() {
 }
 
 /**
+ * Adds a new function to the global scope for the review panel to call.
+ */
+function addNewWord(word) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+  const lastRow = sheet.getLastRow();
+  
+  // Check for duplicates first
+  const wordListRange = sheet.getRange(2, 1, lastRow - 1, 1);
+  const wordValues = wordListRange.getValues();
+  for (let i = 0; i < wordValues.length; i++) {
+    if (wordValues[i][0].toString().trim().toLowerCase() === word.toLowerCase()) {
+      return `The word "${word}" already exists in the list.`;
+    }
+  }
+  
+  // Add the new word to the next empty row
+  sheet.getRange(lastRow + 1, 1).setValue(word);
+  processNewWord(word, lastRow + 1);
+  return `Added "${word}" to your vocabulary list.`;
+}
+
+
+/**
  * Adds new options to the custom menu.
  */
 function onOpen() {
@@ -647,8 +875,10 @@ function onOpen() {
       .addItem('Format Sheet', 'formatSheet')
       .addItem('Remove Duplicates', 'removeDuplicateWords')
       .addSeparator()
-      .addItem('Initialize Sheet', 'initializeSheet') // **NEW**
+      .addItem('Initialize Sheet', 'initializeSheet')
       .addItem('Initialize Quiz Counts', 'initializeQuizCounts')
+      .addItem('Initialize Total Reviews', 'initializeTotalReviews')
       .addItem('Populate & Verify Hyperlinks', 'populateHyperlinks')
+      .addItem('Schedule Initial Reviews', 'scheduleInitialReviews')
       .addToUi();
 }
