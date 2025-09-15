@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <style>
+        body { font-family: sans-serif; padding: 10px; }
+        #status { margin: 15px 0; font-style: italic; color: #555; }
+        button { padding: 8px 12px; margin-right: 10px; cursor: pointer; }
+        #process-btn { background-color: #4CAF50; color: white; border: none; }
+        #process-btn:disabled { background-color: #ccc; }
+        #reset-btn { background-color: #f44336; color: white; border: none; }
+        #auto-process-btn { background-color: #0277bd; color: white; border: none; }
+
+    </style>
+</head>
+<body>
+    <h3>Batch Word Updater</h3>
+    <p>This tool will update existing rows with fresh data from the Gemini API.</p>
+    <div id="status">Loading status...</div>
+    <div id="controls">
+        <button id="process-btn">Process Next Batch</button>
+        <button id="auto-process-btn">Start Auto-Process</button>
+        <button id="reset-btn">Reset Progress</button>
+    </div>
+
+    <script>
+      const statusDiv = document.getElementById('status');
+      const processBtn = document.getElementById('process-btn');
+      const autoProcessBtn = document.getElementById('auto-process-btn');
+      const resetBtn = document.getElementById('reset-btn');
+
+      // --- NEW: State management for the auto-processor ---
+      let isAutoProcessing = false;
+      let autoProcessTimer = null;
+
+      // Function to update the UI with the current progress
+      function updateUi(status) {
+          if (status.isComplete) {
+              statusDiv.textContent = `Complete! All ${status.totalRows} rows have been processed.`;
+              processBtn.textContent = 'All Done';
+              processBtn.disabled = true;
+              autoProcessBtn.disabled = true;
+              stopAutoProcess(); // Ensure auto-process stops on completion
+          } else {
+              statusDiv.textContent = `Progress: ${status.lastProcessed} of ${status.totalRows} words updated.`;
+              // Only re-enable buttons if not in auto-mode
+              if (!isAutoProcessing) {
+                  processBtn.disabled = false;
+                  autoProcessBtn.disabled = false;
+              }
+          }
+      }
+
+      // --- NEW: Starts the next batch and handles the result ---
+      function runNextBatch() {
+          processBtn.disabled = true;
+          autoProcessBtn.textContent = 'Processing...';
+          google.script.run.withSuccessHandler(handleBatchResult).processNextBatch();
+      }
+
+      // --- NEW: The success handler that schedules the next batch ---
+      function handleBatchResult(status) {
+          updateUi(status);
+          // If auto-processing is enabled and not yet complete, schedule the next run
+          if (isAutoProcessing && !status.isComplete) {
+              statusDiv.textContent += ' Waiting 1 minute before next batch...';
+              autoProcessTimer = setTimeout(runNextBatch, 60000); // 60,000 ms = 1 minute
+          } else {
+              stopAutoProcess(); // Stop if complete or manually stopped
+          }
+      }
+      
+      // --- NEW: Function to stop the auto-process and reset the UI ---
+      function stopAutoProcess() {
+          isAutoProcessing = false;
+          clearTimeout(autoProcessTimer);
+          autoProcessBtn.textContent = 'Start Auto-Process';
+          processBtn.disabled = false; // Re-enable manual button
+          autoProcessBtn.disabled = false;
+      }
+
+      // When the sidebar loads, get the current status from the backend
+      document.addEventListener('DOMContentLoaded', () => {
+          google.script.run.withSuccessHandler(updateUi).getBatchProcessStatus();
+      });
+
+      // Handle the MANUAL "Process Next Batch" button click
+      processBtn.addEventListener('click', () => {
+          processBtn.textContent = 'Processing...';
+          processBtn.disabled = true;
+          autoProcessBtn.disabled = true;
+          google.script.run.withSuccessHandler(status => {
+              updateUi(status);
+              // Re-enable the auto-process button after manual run
+              if (!status.isComplete) {
+                autoProcessBtn.disabled = false;
+              }
+          }).processNextBatch();
+      });
+
+      // --- NEW: Handle the "Auto-Process" button click (toggle behavior) ---
+      autoProcessBtn.addEventListener('click', () => {
+          if (isAutoProcessing) {
+              // If it's currently running, STOP it
+              stopAutoProcess();
+              statusDiv.textContent += ' Auto-processing stopped.';
+          } else {
+              // If it's stopped, START it
+              isAutoProcessing = true;
+              autoProcessBtn.textContent = 'Stop Auto-Process';
+              processBtn.disabled = true; // Disable manual button during auto-run
+              runNextBatch(); // Start the first batch immediately
+          }
+      });
+
+      // Handle the "Reset" button click
+      resetBtn.addEventListener('click', () => {
+          if (confirm('Are you sure you want to reset all progress? This will start the update from the beginning.')) {
+              stopAutoProcess(); // Stop any running process before resetting
+              google.script.run.withSuccessHandler(updateUi).resetBatchProcess();
+          }
+      });
+  </script>
+</body>
+</html>

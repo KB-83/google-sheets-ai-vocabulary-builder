@@ -30,6 +30,7 @@
         flex-direction: column;
         align-items: center;
         overflow: hidden;
+        position: relative;
       }
 
       /* --- Search Bar & Suggestions --- */
@@ -122,9 +123,12 @@
         margin: 0;
       }
       #pronunciation-group {
-        text-align: right;
-        font-size: 0.9em;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        font-size: 0.8em;
         color: #5f6368;
+        padding-left: 10px;
       }
       #pronunciation-group span {
         display: flex;
@@ -136,61 +140,226 @@
         color: #333;
         line-height: 1.6;
         text-align: left;
-        flex-grow: 1;
-        overflow-y: auto; /* This makes only the details scrollable */
         width: 100%;
-        padding-right: 15px;
-        box-sizing: border-box;
       }
-      .play-button {
+      .play-button, .tts-button {
         background: none; border: none; width: 20px; height: 20px;
         padding: 0; margin: 0 0 0 8px; cursor: pointer;
         transition: transform 0.2s; min-width: auto; box-shadow: none;
+        vertical-align: middle;
       }
-      .play-button:hover { transform: scale(1.2); }
-      .play-button-uk { color: #1976d2; }
+      .play-button:hover, .tts-button:hover { transform: scale(1.2); }
+      .play-button-uk, .tts-button { color: #1976d2; }
       .play-button-us { color: #d32f2f; }
       .meaning-block {
         background-color: #f7f9fc; border-left: 3px solid #1976d2;
         padding: 10px 12px; margin-bottom: 12px; border-radius: 0 8px 8px 0;
       }
       .meaning-block p { margin: 0; padding: 0; line-height: 1.4; }
-      .meaning-block .definition { font-weight: 500; color: #202124; }
-      .meaning-block .example { font-style: italic; color: #5f6368; margin-top: 4px; }
-      .meaning-block .persian {
-        direction: rtl; text-align: right; font-family: 'Tahoma', 'Arial', sans-serif;
-        color: #00695c; font-weight: 500; margin-top: 6px; font-size: 1.1em;
+      .meaning-block .definition {
+        font-weight: 500;
+        color: #202124;
       }
-      hr { border: none; border-top: 1px solid #e0e0e0; margin: 15px 0; }
+
+      .meaning-block .example {
+        font-style: normal;
+        color: #202124;
+        margin-top: 4px;
+      }
+
+      .meaning-block .persian,
+      .persian-example {
+        direction: rtl;
+        text-align: right;
+        font-family: 'Vazirmatn', 'Tahoma', sans-serif;
+        color: #000000;
+        font-weight: 500;
+        margin-top: 6px;
+        font-size: 1.0em;
+      }
+
+      .persian-example {
+        font-weight: 400;
+        margin-top: 4px;
+      }
+
+      hr {
+        border: none;
+        border-top: 1px solid #e0e0e0;
+        margin: 15px 0;
+      }
+
       .dictionary-links {
-        margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0; text-align: center;
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid #e0e0e0;
+        text-align: center;
       }
+
       .dictionary-links a {
-        display: inline-flex; align-items: center; text-decoration: none;
-        color: #5f6368; background-color: #f7f9fc; padding: 8px 12px;
-        border-radius: 20px; margin: 0 5px; font-size: 0.9em; transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        text-decoration: none;
+        color: #5f6368;
+        background-color: #f7f9fc;
+        padding: 8px 12px;
+        border-radius: 20px;
+        margin: 0 5px;
+        font-size: 0.9em;
+        transition: all 0.2s ease;
       }
-      .dictionary-links a:hover { background-color: #e3f2fd; color: #1976d2; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-      .dictionary-links span { margin-left: 6px; }
+
+      .dictionary-links a:hover {
+        background-color: #e3f2fd;
+        color: #1976d2;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .dictionary-links span {
+        margin-left: 6px;
+      }
+
       .add-word-btn {
-        margin-left: 8px; padding: 2px 8px; font-size: 0.8em; cursor: pointer;
-        border-radius: 4px; border: 1px solid #90a4ae; background-color: #eceff1;
-        color: #37474f; font-weight: 500; min-width: auto; box-shadow: none;
+        margin-left: 8px;
+        padding: 2px 8px;
+        font-size: 0.8em;
+        cursor: pointer;
+        border-radius: 4px;
+        border: 1px solid #90a4ae;
+        background-color: #eceff1;
+        color: #37474f;
+        font-weight: 500;
+        min-width: auto;
+        box-shadow: none;
       }
-      .add-word-btn:hover { background-color: #cfd8dc; }
+      .add-word-btn:hover {
+        background-color: #cfd8dc;
+      }
+
       .add-word-btn:disabled {
-        cursor: not-allowed; background-color: #e8f5e9;
-        color: #2e7d32; border-color: #a5d6a7;
+        cursor: not-allowed;
+        background-color: #e8f5e9;
+        color: #2e7d32;
+        border-color: #a5d6a7;
       }
+
       .toast {
-        position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%);
-        background-color: #333; color: white; padding: 12px 20px;
-        border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        transition: bottom 0.5s ease; z-index: 1000;
+        position: fixed;
+        bottom: -100px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #333;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        transition: bottom 0.5s ease;
+        z-index: 1000;
       }
-      .toast.show { bottom: 20px; }
+
+      .toast.show {
+        bottom: 20px;
+      }
+
+      #settings-btn {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        width: 24px;
+        height: 24px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        opacity: 0.6;
+        transition: opacity 0.2s;
+        z-index: 101;
+      }
+
+      #settings-btn:hover {
+        opacity: 1;
+      }
+
+      #settings-modal {
+        display: none;
+        position: fixed;
+        z-index: 1001;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.4);
+        align-items: center;
+        justify-content: center;
+      }
+
+      .modal-content {
+        background-color: #fefefe;
+        margin: auto;
+        padding: 20px;
+        border: 1px solid #888;
+        border-radius: 12px;
+        width: 80%;
+        max-width: 500px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      }
+
+      .modal-content h2 {
+        margin-top: 0;
+      }
+
+      #voice-selector {
+        width: 100%;
+        padding: 8px;
+        margin-top: 10px;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+      }
+
+      .close-btn {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+      /* --- NEW: Styles for POS headers --- */
+      .pos-header {
+        margin-top: 15px;
+        margin-bottom: 8px;
+        font-size: 1.1em;
+        color: #3f51b5;
+        border-bottom: 1px solid #e0e0e0;
+        padding-bottom: 4px;
+      }
+
+      .pos-header-small {
+        margin-top: 10px;
+        margin-bottom: 5px;
+        font-size: 0.9em;
+        font-weight: 600;
+        color: #5f6368;
+      }
+
+      .metadata-controls {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        width: 100%;
+        padding: 10px 0;
+        margin-bottom: 15px;
+        background-color: #f7f9fc;
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+      }
+      .metadata-controls label { display: flex; align-items: center; cursor: pointer; }
+      .metadata-controls input[type="checkbox"] { margin-right: 5px; width: 16px; height: 16px; }
+      .metadata-controls select { margin-left: 5px; padding: 4px; border-radius: 4px; border: 1px solid #ccc; }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap" rel="stylesheet">
+
 </head>
 <body>
     <div id="search-dialog-container">
@@ -198,6 +367,10 @@
             <input type="text" id="search-input" placeholder="Type to search for a word...">
             <div id="suggestions"></div>
         </div>
+
+        <button id="settings-btn" title="TTS Settings">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.44,0.17-0.48,0.41L9.15,5.25C8.56,5.5,8.03,5.82,7.53,6.2L5.14,5.24C4.92,5.16,4.67,5.24,4.55,5.45L2.63,8.77 c-0.11,0.2-0.06,0.47,0.12,0.61l2.03,1.58C4.74,11.36,4.72,11.68,4.72,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.48,2.44 c0.04,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.48-0.41l0.48-2.44c0.59-0.24,1.12-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.11-0.2,0.06-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"></path></svg>
+        </button>
 
         <div id="content-area" class="is-initial">
             <div id="initial-message">Search for a word to see its details.</div>
@@ -209,26 +382,102 @@
                     <div id="word-display"></div>
                     <div id="pronunciation-group"></div>
                 </div>
+                <div class="metadata-controls">
+                  <label><input type="checkbox" id="writing-cb"> Writing</label>
+                  <label><input type="checkbox" id="speaking-cb"> Speaking</label>
+                  <label>Difficulty: 
+                      <select id="difficulty-select">
+                          <option value="0">Not Set</option>
+                          <option value="1">⭐</option>
+                          <option value="2">⭐⭐</option>
+                          <option value="3">⭐⭐⭐</option>
+                          <option value="4">⭐⭐⭐⭐</option>
+                          <option value="5">⭐⭐⭐⭐⭐</option>
+                      </select>
+                  </label>
+              </div>
                 <div id="answer-display"></div>
             </div>
         </div>
+    </div>
+
+    <div id="settings-modal">
+      <div class="modal-content">
+        <span class="close-btn">&times;</span>
+        <h2>TTS Voice Settings</h2>
+        <p>Select a voice for reading examples aloud. Your choice will be saved in this browser.</p>
+        <select id="voice-selector"></select>
+      </div>
     </div>
 
     <script>
       const searchInput = document.getElementById('search-input');
       const suggestionsPanel = document.getElementById('suggestions');
       const contentArea = document.getElementById('content-area');
+      const speakerIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="display: block; width: 100%; height: 100%;"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"></path></svg>`;
       let searchTimeout;
+      let voices = [];
+      const VOICE_STORAGE_KEY = 'preferredTTSVoice';
 
-      // --- Event Listeners ---
-      document.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('answer-display').addEventListener('click', handleAddWordClick);
-        document.getElementById('pronunciation-group').addEventListener('click', handlePronunciationClick);
-        document.addEventListener('click', handleGlobalClick);
-        searchInput.addEventListener('input', handleSearchInput);
-      });
+      let currentWordData = {};
 
-      // --- Event Handlers ---
+      function getVoices() {
+        voices = window.speechSynthesis.getVoices();
+        populateVoiceList();
+      }
+
+      function populateVoiceList() {
+        const voiceSelector = document.getElementById('voice-selector');
+        const savedVoice = localStorage.getItem(VOICE_STORAGE_KEY);
+        voiceSelector.innerHTML = '';
+        voices.forEach(voice => {
+          if (voice.lang.startsWith('en-')) {
+            const option = document.createElement('option');
+            option.textContent = `${voice.name} (${voice.lang})`;
+            option.setAttribute('data-lang', voice.lang);
+            option.setAttribute('data-name', voice.name);
+            if (voice.name === savedVoice) {
+              option.selected = true;
+            }
+            voiceSelector.appendChild(option);
+          }
+        });
+      }
+
+      function speakText(text) {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          const savedVoiceName = localStorage.getItem(VOICE_STORAGE_KEY);
+          let selectedVoice = null;
+
+          if (savedVoiceName) {
+            selectedVoice = voices.find(voice => voice.name === savedVoiceName);
+          }
+          
+          if (!selectedVoice) {
+            const voicePriority = ["Google US English", "Microsoft Zira - English (United States)", "Samantha"];
+            for (const voiceName of voicePriority) {
+              selectedVoice = voices.find(voice => voice.name === voiceName);
+              if (selectedVoice) break;
+            }
+          }
+          if (!selectedVoice) {
+            selectedVoice = voices.find(voice => voice.lang.startsWith('en-US') && voice.localService);
+          }
+          if (!selectedVoice) {
+            selectedVoice = voices.find(voice => voice.lang.startsWith('en-US'));
+          }
+
+          utterance.voice = selectedVoice;
+          utterance.pitch = 1;
+          utterance.rate = 1;
+          window.speechSynthesis.speak(utterance);
+        } else {
+          alert('Sorry, your browser does not support Text-to-Speech.');
+        }
+      }
+
       function handleSearchInput() {
         clearTimeout(searchTimeout);
         const query = searchInput.value;
@@ -244,39 +493,33 @@
             .searchWords(query);
         }, 300);
       }
-
-      function handleAddWordClick(event) {
-        if (event.target.classList.contains('add-word-btn')) {
-            const button = event.target;
-            const wordToAdd = button.dataset.word;
-            button.disabled = true;
-            button.textContent = 'Adding...';
-            
-            google.script.run
-                .withSuccessHandler(message => {
-                    showToast(message);
-                    button.textContent = '✓ Added';
-                })
-                .withFailureHandler(showError)
-                .addNewWord(wordToAdd);
-        }
-      }
-
-      function handlePronunciationClick(event) {
-        const button = event.target.closest('.play-button');
-        if (button) {
-            const audioUrl = button.dataset.audioUrl;
-            if (audioUrl) new Audio(audioUrl).play().catch(e => console.error("Audio error:", e));
-        }
-      }
       
       function handleGlobalClick(event) {
+        const addWordButton = event.target.closest('.add-word-btn');
+        const pronunciationButton = event.target.closest('.play-button');
+        const ttsButton = event.target.closest('.tts-button');
+        
         if (!searchInput.contains(event.target)) {
           suggestionsPanel.style.display = 'none';
         }
+        if (addWordButton) {
+            const wordToAdd = addWordButton.dataset.word;
+            addWordButton.disabled = true;
+            addWordButton.textContent = 'Adding...';
+            google.script.run
+                .withSuccessHandler(message => { showToast(message); addWordButton.textContent = '✓ Added'; })
+                .withFailureHandler(showError)
+                .addNewWord(wordToAdd);
+        } else if (pronunciationButton) {
+            const audioUrl = pronunciationButton.dataset.audioUrl;
+            if (audioUrl) new Audio(audioUrl).play().catch(e => console.error("Audio error:", e));
+        } else if (ttsButton) {
+            const textToSpeak = ttsButton.dataset.textToSpeak;
+            if (textToSpeak) speakText(textToSpeak);
+        }
+          
       }
 
-      // --- UI Update Functions ---
       function showSuggestions(words) {
         suggestionsPanel.innerHTML = '';
         if (words && words.length > 0) {
@@ -304,112 +547,342 @@
           .getWordDetails(rowNumber);
       }
 
+      document.addEventListener('DOMContentLoaded', () => {
+        if ('speechSynthesis' in window) {
+            getVoices();
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = getVoices;
+            }
+        }
+        document.body.addEventListener('click', handleGlobalClick);
+        searchInput.addEventListener('input', handleSearchInput);
+
+        const settingsModal = document.getElementById('settings-modal');
+        const settingsBtn = document.getElementById('settings-btn');
+        const closeBtn = document.querySelector('.close-btn');
+        const voiceSelector = document.getElementById('voice-selector');
+
+        const writingCb = document.getElementById('writing-cb');
+        const speakingCb = document.getElementById('speaking-cb');
+        const difficultySelect = document.getElementById('difficulty-select');
+
+        function sendMetadataUpdate() {
+          currentWordData
+          if (!currentWordData) return;
+          google.script.run
+              .withFailureHandler(showError)
+              .updateWordMetadata({
+                  row: currentWordData.row,
+                  writing: writingCb.checked ? 1 : 0,
+                  speaking: speakingCb.checked ? 1 : 0,
+                  difficulty: parseInt(difficultySelect.value, 10)
+              });
+          }
+        writingCb.addEventListener('change', sendMetadataUpdate);
+        speakingCb.addEventListener('change', sendMetadataUpdate);
+        difficultySelect.addEventListener('change', sendMetadataUpdate);
+
+
+        settingsBtn.onclick = () => settingsModal.style.display = "flex";
+        closeBtn.onclick = () => settingsModal.style.display = "none";
+        window.onclick = (event) => {
+          if (event.target == settingsModal) {
+            settingsModal.style.display = "none";
+          }
+        }
+        voiceSelector.onchange = () => {
+          const selectedName = voiceSelector.selectedOptions[0].getAttribute('data-name');
+          localStorage.setItem(VOICE_STORAGE_KEY, selectedName);
+          speakText("This is the selected voice.");
+        };
+      });
+
+      /**
+       * **NEW**: Helper function to parse the multi-part-of-speech data format.
+       */
+      function parseMultiPartSpeechData(dataString) {
+          if (!dataString || !dataString.includes('---')) {
+              return [{ pos: null, items: (dataString || '').split('\n').filter(Boolean) }];
+          }
+          const sections = dataString.split(/\n\n?--- /);
+          const result = [];
+          sections.forEach(section => {
+              if (section.trim()) {
+                  const lines = section.split('\n');
+                  const header = lines.shift().replace(/ ---/g, '').trim();
+                  const items = lines.filter(line => line.trim());
+                  result.push({ pos: header, items: items });
+              }
+          });
+          return result;
+      }
+
+
       function displayWordDetails(wordData) {
         if (!wordData) {
           showError({ message: 'Could not retrieve word details.' });
           return;
         }
+        currentWordData = wordData
         
         contentArea.className = 'is-showing-word';
-        
         document.getElementById('word-display').textContent = wordData.word;
         
         const answerDisplay = document.getElementById('answer-display');
         answerDisplay.innerHTML = '';
+
+        // --- 2. SET METADATA CONTROLS ---
+        document.getElementById('writing-cb').checked = (wordData.writing == 1);
+        document.getElementById('speaking-cb').checked = (wordData.speaking == 1);
+        document.getElementById('difficulty-select').value = wordData.difficulty || 0;
         
         const pronunciationGroup = document.getElementById('pronunciation-group');
         pronunciationGroup.innerHTML = '';
 
-        // --- Build Pronunciation ---
-        if ((wordData.ukPronunciation && wordData.ukPronunciation !== '—') || (wordData.usPronunciation && wordData.usPronunciation !== '—')) {
-            const encodedWord = encodeURIComponent(wordData.word.toLowerCase());
-            const speakerIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="display: block; width: 100%; height: 100%;"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"></path></svg>`;
-            
-            if (wordData.ukPronunciation && wordData.ukPronunciation !== '—') {
-                const ukSpan = document.createElement('span');
-                ukSpan.innerHTML = `<strong>UK:</strong> ${wordData.ukPronunciation}`;
-                const ukButton = document.createElement('button');
-                ukButton.className = 'play-button play-button-uk';
-                ukButton.innerHTML = speakerIconSvg;
-                ukButton.dataset.audioUrl = `https://ssl.gstatic.com/dictionary/static/sounds/oxford/${encodedWord}--_gb_1.mp3`;
-                ukSpan.appendChild(ukButton);
-                pronunciationGroup.appendChild(ukSpan);
-            }
-            if (wordData.usPronunciation && wordData.usPronunciation !== '—') {
-                const usSpan = document.createElement('span');
-                usSpan.innerHTML = `<strong>US:</strong> ${wordData.usPronunciation}`;
-                const usButton = document.createElement('button');
-                usButton.className = 'play-button play-button-us';
-                usButton.innerHTML = speakerIconSvg;
-                usButton.dataset.audioUrl = `https://ssl.gstatic.com/dictionary/static/sounds/oxford/${encodedWord}--_us_1.mp3`;
-                usSpan.appendChild(usButton);
-                pronunciationGroup.appendChild(usSpan);
-            }
-        }
-        
-        // --- Build Details ---
-        appendStrongText(answerDisplay, 'Part of Speech', wordData.partOfSpeech);
-        if (wordData.definitions && wordData.definitions.length > 0 && wordData.definitions[0] !== '• —') {
-            const meaningsTitle = document.createElement('strong');
-            meaningsTitle.textContent = 'Meanings & Examples:';
-            meaningsTitle.style.cssText = 'display: block; margin-bottom: 8px;';
-            answerDisplay.appendChild(meaningsTitle);
+        const appendStrongText = (parent, label, text) => {
+                    if (text && text !== '—') {
+                        const p = document.createElement('p');
+                        p.innerHTML = `<strong>${label}:</strong> ${text}`;
+                        parent.appendChild(p);
+                    }
+                };
 
-            wordData.definitions.forEach((def, index) => {
-                if (!def) return;
+        const escapeHtmlAttr = (str) => {
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
+        };
+
+        // MODIFIED: This function now adds TTS buttons to the "General Examples" list.
+        const appendList = (parent, label, text, canAddWords) => {
+            if (canAddWords === undefined) {
+                canAddWords = false;
+            }
+            if (text && text.trim() && text !== '—') {
+                const div = document.createElement('div');
+                let html = `<strong>${label}:</strong><ul>`;
+                text.split('\n').forEach(itemText => {
+                    if (itemText) {
+                        const cleanText = itemText.replace(/• /g, '').trim();
+
+                        // --- START OF MODIFICATION ---
+                        // Use a regular expression to remove the part of speech in parentheses
+                        // for the data-word attribute. This handles cases like "elusion (noun)"
+                        // and multi-word phrases correctly.
+                        const wordToAdd = cleanText.replace(/\s\(.*\)$/, '').trim();
+                        const safeWordToAdd = escapeHtmlAttr(wordToAdd);
+                        // --- END OF MODIFICATION ---
+
+                        html += `<li>${cleanText}`;
+
+                        if (label === 'General Examples') {
+                            html += ` <button class="tts-button" title="Read example aloud" data-text-to-speak="${safeWordToAdd}">${speakerIconSvg}</button>`;
+                        }
+
+                        if (canAddWords) {
+                            // **MODIFIED**: Use the cleaned 'wordToAdd' for the button's data.
+                            html += ` <button class="add-word-btn" title="Add &quot;${safeWordToAdd}&quot; to your list" data-word="${safeWordToAdd}">+</button>`;
+                        }
+                        html += `</li>`;
+                    }
+                });
+                html += '</ul>';
+                div.innerHTML = html;
+                parent.appendChild(div);
+            }
+        };
+
+        // --- 3. RENDER PRONUNCIATION (NEW MULTI-PART-OF-SPEECH VERSION) ---
+        const encodedWord = encodeURIComponent(wordData.word.toLowerCase());
+
+        const renderPronunciations = (region, dataString) => {
+            console.log(region , dataString)
+            if (!dataString || dataString === '—') return;
+
+            const lines = dataString.split('\n').filter(line => line.trim());
+            lines.forEach((line, index) => {
+                const parts = line.split(':');
+                if (parts.length < 2) return;
+
+                const pos = parts[0].trim();
+                const ipa = parts.slice(1).join(':').trim();
+                if (ipa === '—') return;
+
+                // This is a best-effort guess for the audio file URL.
+                // Many services use _1, _2, etc., for multiple pronunciations.
+                const audioSuffix = `_${index + 1}`;
+                const audioUrl = `https://ssl.gstatic.com/dictionary/static/sounds/oxford/${encodedWord}--_${region.toLowerCase()}${audioSuffix}.mp3`;
+                console.log(`[Frontend] Url: "${audioUrl}"`)
+
+                const span = document.createElement('span');
+                span.innerHTML = `<strong>${region.toUpperCase()} (${pos}):</strong> ${ipa}`;
+                
+                const button = document.createElement('button');
+                button.className = `play-button play-button-${region.toLowerCase()}`;
+                button.innerHTML = speakerIconSvg;
+                button.dataset.audioUrl = audioUrl;
+                
+                span.appendChild(button);
+                pronunciationGroup.appendChild(span);
+            });
+        };
+
+        renderPronunciations('gb', wordData.ukPronunciation);
+        renderPronunciations('us', wordData.usPronunciation);
+
+        // --- 4. RENDER PART OF SPEECH ---
+        if (wordData.partOfSpeech && wordData.partOfSpeech !== '—') {
+            const p = document.createElement('p');
+            p.innerHTML = `<strong>Part of Speech:</strong> ${wordData.partOfSpeech}`;
+            answerDisplay.appendChild(p);
+        }
+
+        // --- 5. RENDER MEANINGS & DEFINITION EXAMPLES ---
+        const meaningsTitle = document.createElement('strong');
+        meaningsTitle.textContent = 'Meanings & Examples:';
+        answerDisplay.appendChild(meaningsTitle);
+
+        const definitionsParsed = parseMultiPartSpeechData(wordData.definitions);
+        const persianParsed = parseMultiPartSpeechData(wordData.persianTranslations);
+        const defExamplesParsed = parseMultiPartSpeechData(wordData.definitionExamples);
+
+        definitionsParsed.forEach((section, posIndex) => {
+            if (section.pos) {
+                const posHeader = document.createElement('h4');
+                posHeader.className = 'pos-header';
+                posHeader.textContent = section.pos;
+                answerDisplay.appendChild(posHeader);
+            }
+            section.items.forEach((def, itemIndex) => {
                 const block = document.createElement('div');
                 block.className = 'meaning-block';
-                block.innerHTML = `
-                    <p class="definition">${index + 1}. ${def.replace(/• /g, '')}</p>
-                    <p class="persian">${(wordData.persianTranslations[index] || '').replace(/• /g, '')}</p>
-                    <p class="example">${(wordData.definitionExamples[index] || '').replace(/• /g, '')}</p>
-                `;
+                
+                const defP = document.createElement('p');
+                defP.className = 'definition';
+                defP.textContent = def.replace(/• /g, '');
+                block.appendChild(defP);
+
+                const persianText = (persianParsed[posIndex]?.items[itemIndex] || '').replace(/• /g, '');
+                const exampleText = (defExamplesParsed[posIndex]?.items[itemIndex] || '').replace(/• /g, '');
+                const safeExampleText = exampleText.replace(/"/g, '&quot;');
+
+                if (persianText) {
+                    const persianP = document.createElement('p');
+                    persianP.className = 'persian';
+                    persianP.textContent = persianText;
+                    block.appendChild(persianP);
+                }
+                if (exampleText) {
+                    const exP = document.createElement('p');
+                    exP.className = 'example';
+                    exP.innerHTML = `${exampleText} <button class="tts-button" title="Read example aloud" data-text-to-speak="${safeExampleText}">${speakerIconSvg}</button>`;
+                    block.appendChild(exP);
+                }
                 answerDisplay.appendChild(block);
+            });
+        });
+        answerDisplay.appendChild(document.createElement('hr'));
+        
+        // --- 6. RENDER GENERAL EXAMPLES ---
+        const genExParsed = parseMultiPartSpeechData(wordData.generalExamples);
+        if (genExParsed[0]?.items.length > 0 && genExParsed[0].items[0] !== '• —') {
+            const genExTitle = document.createElement('strong');
+            genExTitle.textContent = 'General Examples:';
+            answerDisplay.appendChild(genExTitle);
+            
+            const genExPersianParsed = parseMultiPartSpeechData(wordData.generalExamplesPersian);
+
+            genExParsed.forEach((section, posIndex) => {
+                if (section.pos) {
+                    const posHeader = document.createElement('h4');
+                    posHeader.className = 'pos-header';
+                    posHeader.textContent = section.pos;
+                    answerDisplay.appendChild(posHeader);
+                }
+                section.items.forEach((engExample, itemIndex) => {
+                    const block = document.createElement('div');
+                    block.className = 'meaning-block';
+                    
+                    const engText = engExample.replace(/• /g, '');
+                    const safeEngText = engText.replace(/"/g, '&quot;');
+                    const engP = document.createElement('p');
+                    engP.className = 'example';
+                    engP.innerHTML = `${engText} <button class="tts-button" title="Read example aloud" data-text-to-speak="${safeEngText}">${speakerIconSvg}</button>`;
+                    block.appendChild(engP);
+                    
+                    const perText = (genExPersianParsed[posIndex]?.items[itemIndex] || '').replace(/• /g, '');
+                    if (perText) {
+                        const perP = document.createElement('p');
+                        perP.className = 'persian-example';
+                        perP.textContent = perText;
+                        block.appendChild(perP);
+                    }
+                    answerDisplay.appendChild(block);
+                });
             });
             answerDisplay.appendChild(document.createElement('hr'));
         }
 
-        appendList(answerDisplay, 'General Examples', (wordData.generalExamples || []).join('\n'), false);
-        appendList(answerDisplay, 'Synonyms', wordData.synonyms, true);
-        appendList(answerDisplay, 'Antonyms', wordData.antonyms, true);
-        appendList(answerDisplay, 'Notes', wordData.notes, false);
-        appendList(answerDisplay, 'Word Family', wordData.wordFamily, true);
+        // --- 7. RENDER SIMPLE LISTS (SYNONYMS, NOTES, ETC.) ---
+        const renderSimpleList = (label, dataString, options = {}) => {
+            const parsedData = parseMultiPartSpeechData(dataString);
+            if (!parsedData[0]?.items.length || parsedData[0].items[0].includes('—')) return;
 
+            const container = document.createElement('div');
+            container.innerHTML = `<strong>${label}:</strong>`;
+            
+            parsedData.forEach(section => {
+                if (section.pos) {
+                    const posHeader = document.createElement('h5');
+                    posHeader.className = 'pos-header-small';
+                    posHeader.textContent = section.pos;
+                    container.appendChild(posHeader);
+                }
+                const ul = document.createElement('ul');
+                section.items.forEach(itemText => {
+                    const li = document.createElement('li');
+                    const cleanText = itemText.replace(/• /g, '').trim();
+                    li.innerHTML = cleanText;
+                    if (options.addable) {
+                        const wordToAdd = cleanText.replace(/\s\(.*\)$/, '').trim();
+                        const safeWord = escapeHtmlAttr(wordToAdd);
+                        li.innerHTML += ` <button class="add-word-btn" title="Add '${safeWord}' to list" data-word="${safeWord}">+</button>`;
+                    }
+                    ul.appendChild(li);
+                });
+                container.appendChild(ul);
+            });
+            answerDisplay.appendChild(container);
+        };
+
+        renderSimpleList('Synonyms', wordData.synonyms, { addable: true });
+        renderSimpleList('Antonyms', wordData.antonyms, { addable: true });
+        renderSimpleList('Notes', wordData.notes);
+        renderSimpleList('Word Family', wordData.wordFamily, { addable: true });
+
+
+        // --- 8. RENDER DICTIONARY LINKS ---
         const linksContainer = document.createElement('div');
         linksContainer.className = 'dictionary-links';
-        if (wordData.cambridgeUrl) linksContainer.innerHTML += `<a href="${wordData.cambridgeUrl}" target="_blank">📖<span>Cambridge</span></a>`;
-        if (wordData.oxfordUrl) linksContainer.innerHTML += `<a href="${wordData.oxfordUrl}" target="_blank">📚<span>Oxford</span></a>`;
-        if (linksContainer.hasChildNodes()) answerDisplay.appendChild(linksContainer);
-
-        answerDisplay.scrollTop = 0;
-      }
-
-      // --- Helper & Utility Functions ---
-      function appendStrongText(parent, label, text) {
-        if (text && text !== '—') {
-            const p = document.createElement('p');
-            p.innerHTML = `<strong>${label}:</strong> ${text}`;
-            parent.appendChild(p);
+        if (wordData.cambridgeUrl) {
+            const link = document.createElement('a');
+            link.href = wordData.cambridgeUrl;
+            link.target = '_blank';
+            link.innerHTML = '📖<span>Cambridge</span>';
+            linksContainer.appendChild(link);
         }
-      }
-      
-      function appendList(parent, label, text, canAddWords) {
-        if (text && text.trim() && text !== '—') {
-            const div = document.createElement('div');
-            let html = `<strong>${label}:</strong><ul>`;
-            text.split('\n').forEach(itemText => {
-                if (itemText) {
-                    const word = itemText.replace(/• /g, '').trim();
-                    const safeWord = word.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
-                    html += `<li>${word}`;
-                    if (canAddWords) {
-                        html += ` <button class="add-word-btn" title="Add &quot;${safeWord}&quot; to your list" data-word="${safeWord}">+</button>`;
-                    }
-                    html += `</li>`;
-                }
-            });
-            div.innerHTML = html + '</ul>';
-            parent.appendChild(div);
+        if (wordData.oxfordUrl) {
+            const link = document.createElement('a');
+            link.href = wordData.oxfordUrl;
+            link.target = '_blank';
+            link.innerHTML = '📚<span>Oxford</span>';
+            linksContainer.appendChild(link);
+        }
+        if (linksContainer.hasChildNodes()) {
+            answerDisplay.appendChild(linksContainer);
         }
       }
 
@@ -427,9 +900,7 @@
         }
         toast.textContent = message;
         toast.classList.add('show');
-        setTimeout(() => {
-            toast.classList.remove('show');
-        }, 3000);
+        setTimeout(() => toast.classList.remove('show'), 3000);
       }
     </script>
 </body>
