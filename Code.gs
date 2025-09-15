@@ -23,6 +23,12 @@ const DUE_TODAY_COLOR = '#ffcc80';
 const DUE_TOMORROW_COLOR = '#fff9c4';
 const BROKEN_LINK_COLOR = '#ffcdd2'; // Light Red for broken links
 
+
+// The number of words to process in each batch. Two concurrent API calls per batch.
+const BATCH_SIZE = 9; 
+const SCRIPT_PROPERTY_KEY = 'LAST_PROCESSED_ROW';
+
+
 /**
  * Triggered automatically when a cell in the spreadsheet is edited.
  */
@@ -1279,10 +1285,6 @@ function shiftDataForNewColumn() {
 
 
 // --- BATCH UPDATER FUNCTIONS ---
-
-// The number of words to process in each batch. Two concurrent API calls per batch.
-const BATCH_SIZE = 2; 
-const SCRIPT_PROPERTY_KEY = 'LAST_PROCESSED_ROW';
 
 /**
  * Shows the batch updater sidebar UI.
