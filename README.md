@@ -20,6 +20,32 @@ This project transforms a simple Google Sheet into a powerful, automated vocabul
 4.  **`ScramblePuzzle.html`**: The frontend for the word scramble game.
 
 ---
+## Version2(v2) Changelog
+
+1. A new designed prompt
+2. a new designed datastructure. Previously, you keep a single part of speech for each word. In the new design, all part of speechs will be received, saved, and displayed.
+3. Adding a new column for the 'Persian Translation` of general examples.
+4. add 3 new columns : Speaking, Writing, Difficulty. Now you can Mark a word for speaking or writing(or both), and also choose a difficulty level for each word. Later you can filter the words based on them!
+5. Add auto pronunciation of word and **sentences**. For the sentences, you can select from different available voices from your browser and OS.
+   1. **The word pronunciation might be corrupted for some words that have different pronunciation based on wether it is a noun, or verb, or ... . Since I had no way to sync the IPA phonetic with pronunciation(which came from another website), you might face some problems, seeing an IPA phonetic but hearing a different pronunciation. Appology in advance =)**  
+6. Updates to HTML files to be compatible to the above changes.
+---
+## Migration from V1 to V2
+**If you are new user, Move to the next section.**
+
+If you have been using the V1 of this app and your sheet is not empty, you **MUST** follow the instructions below:
+1. First, make a copy of your sheet as a backup.
+2. Copy and paste the new files. Make sure to copy all of them(including `BatchUpdaterSidebar.html` file, which is new.). Make sure to replcae your `SHEET_NAME` and `YOUR_SPREED_SHEET_ID` in `code.gs` file.
+3. Then, in the `Review Vocabulary` tab, press `SHIFT DATA for New Column` :
+![new column](images/image8.png)
+4. When this task is finished, Then you should update the entire dataset to the new format. Press `Batch Update Words` button in `Review Vocabulary` tab:
+![batch](images/image9.png)
+5. A new sidebar panel opens. On this panel you have the ability to manually update words in batches of size 9 (9 words at the same time) by pressing `Process Next Batch` (the green button), or automatically update all the words sequentially in batches of size 9 by pressing `Start Auto-process` (blue button)
+![update](images/image10.png)
+6. Let the process finish. At any moment, you can see how many words have been processed so far. Moreover, You have the ability to pause the process, and resume it later from the exact batch you have left from.
+   ![Apps Script](images/image11.png)
+**Consider in mind that by updating the list, you will receive a completely new set of examples and definitions from Gemini 2.5 flash! All the previous definitions and examples will be updated. But, other columns (review date, review count, ...) are not touched.**
+---
 
 ## Setup Guide for Non-Technical Users
 
