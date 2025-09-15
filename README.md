@@ -36,13 +36,14 @@ This project transforms a simple Google Sheet into a powerful, automated vocabul
 If you have been using the V1 of this app and your sheet is not empty, you **MUST** follow the instructions below:
 1. First, make a copy of your sheet as a backup.
 2. Copy and paste the new files. Make sure to copy all of them(including `BatchUpdaterSidebar.html` file, which is new.). Make sure to replcae your `SHEET_NAME` and `YOUR_SPREED_SHEET_ID` in `code.gs` file.
+   1. Update `appsscript.json` again. (See the last section of the md file for `appsscript.json`. That json is updated. You can copy and paste it easily.)
 3. Then, in the `Review Vocabulary` tab, press `SHIFT DATA for New Column` :
 ![new column](images/image8.png)
-4. When this task is finished, Then you should update the entire dataset to the new format. Press `Batch Update Words` button in `Review Vocabulary` tab:
+1. When this task is finished, Then you should update the entire dataset to the new format. Press `Batch Update Words` button in `Review Vocabulary` tab:
 ![batch](images/image9.png)
-5. A new sidebar panel opens. On this panel you have the ability to manually update words in batches of size 9 (9 words at the same time) by pressing `Process Next Batch` (the green button), or automatically update all the words sequentially in batches of size 9 by pressing `Start Auto-process` (blue button)
+1. A new sidebar panel opens. On this panel you have the ability to manually update words in batches of size 9 (9 words at the same time) by pressing `Process Next Batch` (the green button), or automatically update all the words sequentially in batches of size 9 by pressing `Start Auto-process` (blue button)
 ![update](images/image10.png)
-6. Let the process finish. At any moment, you can see how many words have been processed so far. Moreover, You have the ability to pause the process, and resume it later from the exact batch you have left from.
+1. Let the process finish. At any moment, you can see how many words have been processed so far. Moreover, You have the ability to pause the process, and resume it later from the exact batch you have left from.
    ![Apps Script](images/image11.png)
 **Consider in mind that by updating the list, you will receive a completely new set of examples and definitions from Gemini 2.5 flash! All the previous definitions and examples will be updated. But, other columns (review date, review count, ...) are not touched.**
 ---
@@ -186,7 +187,8 @@ In some cases, you might need to do the following:
     "oauthScopes": [
         "https://www.googleapis.com/auth/script.external_request",
         "https://www.googleapis.com/auth/script.container.ui",
-        "https://www.googleapis.com/auth/spreadsheets"
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/script.scriptapp"
     ],
     "exceptionLogging": "STACKDRIVER",
     "runtimeVersion": "V8"
